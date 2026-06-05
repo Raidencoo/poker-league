@@ -1,33 +1,38 @@
 [
   {
     "id": "raiden",
-    "name": "帝国の猛虎・Red",
-    "avatar": "avatars/default.svg"
+    "name": "過江龍・Red",
+    "avatar": "avatars/wu.png"
   },
   {
-    "id": "xuqiang",
-    "name": "159徐",
-    "avatar": "avatars/default.svg"
+    "id": "qiang",
+    "name": "花和尚・强",
+    "avatar": "avatars/qiang.png"
   },
   {
     "id": "gougou",
-    "name": "jay",
-    "avatar": "avatars/default.svg"
+    "name": "交界地之王・lemboyy",
+    "avatar": "avatars/gou.png"
   },
   {
     "id": "kai",
-    "name": "凯风依旧",
-    "avatar": "avatars/default.svg"
+    "name": "抗压王・凯",
+    "avatar": "avatars/kai.png"
   },
   {
     "id": "peng",
-    "name": "鹏仔",
-    "avatar": "avatars/default.svg"
+    "name": "德州之神・鹏",
+    "avatar": "avatars/peng.png"
   },
   {
-    "id": "zhengming",
-    "name": "锐女（待定）",
-    "avatar": "avatars/default.svg"
+    "id": "ming",
+    "name": "赌圣・M",
+    "avatar": "avatars/ming.png"
+  },
+  {
+    "id": "rui",
+    "name": "从零开始的s赛冠军之路・锐",
+    "avatar": "avatars/rui.png"
   },
   {
     "id": "kai-g",
@@ -36,7 +41,12 @@
   },
   {
     "id": "yang",
-    "name": "杨仔",
+    "name": "赌狗・杨",
+    "avatar": "avatars/yang.png"
+  },
+  {
+    "id": "liang",
+    "name": "赌神・亮",
     "avatar": "avatars/default.svg"
   }
 ]
