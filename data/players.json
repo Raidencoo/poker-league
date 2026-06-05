@@ -1,0 +1,42 @@
+[
+  {
+    "id": "alex",
+    "name": "阿乐",
+    "avatar": "avatars/default.svg"
+  },
+  {
+    "id": "ben",
+    "name": "本本",
+    "avatar": "avatars/default.svg"
+  },
+  {
+    "id": "chen",
+    "name": "陈哥",
+    "avatar": "avatars/default.svg"
+  },
+  {
+    "id": "david",
+    "name": "大卫",
+    "avatar": "avatars/default.svg"
+  },
+  {
+    "id": "eric",
+    "name": "二饼",
+    "avatar": "avatars/default.svg"
+  },
+  {
+    "id": "frank",
+    "name": "飞飞",
+    "avatar": "avatars/default.svg"
+  },
+  {
+    "id": "gary",
+    "name": "老高",
+    "avatar": "avatars/default.svg"
+  },
+  {
+    "id": "hao",
+    "name": "浩子",
+    "avatar": "avatars/default.svg"
+  }
+]

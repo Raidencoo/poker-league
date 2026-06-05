@@ -1,0 +1,31 @@
+{
+  "season": {
+    "current": "2026-S1",
+    "gamesPerSeason": 4,
+    "weakPrize": 20,
+    "topFourPrizePercentages": [0.5, 0.25, 0.15, 0.1],
+    "weakPrizeMinimumAttendance": 3
+  },
+  "money": {
+    "buyInPerPlayer": 150,
+    "minimumPlayers": 6,
+    "venueFee": 80,
+    "nightRewardTotal": 300,
+    "nightRewardPrizes": [170, 80, 50],
+    "seasonPoolPerGame": 100
+  },
+  "chips": {
+    "startingChips": 1000,
+    "rebuyChips": 500,
+    "chipBonusStep": 500,
+    "maxChipBonus": 8,
+    "rebuyPenalties": [-2, -3, -4],
+    "rebuyPenaltyAfterThird": -5
+  },
+  "points": {
+    "rankBasePoints": [12, 10, 8, 6, 4, 3, 2],
+    "rankBasePointAfterSeventh": 1,
+    "minimumFullParticipationPoint": 1,
+    "leftEarlyPoint": 0
+  }
+}

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>德州朋友局 · 赛季积分榜</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-grid">
+        <div class="header-copy">
+          <p class="site-kicker">Friends Poker League</p>
+          <h1>德州朋友局 · 赛季积分榜</h1>
+          <p class="site-intro">奖池、积分、最近战报，一张桌看完。</p>
+        </div>
+        <div class="header-mark" aria-hidden="true">
+          <span>A</span>
+          <span>K</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="container page-grid">
+      <section class="section overview-section" aria-labelledby="overview-title">
+        <div class="section-heading">
+          <h2 id="overview-title">当前赛季总览</h2>
+          <p id="season-progress">数据加载中...</p>
+        </div>
+        <div id="season-overview" class="summary-grid" aria-live="polite"></div>
+      </section>
+
+      <section class="section podium-section" aria-labelledby="top-four-title">
+        <div class="section-heading">
+          <h2 id="top-four-title">TOP 4 领奖台</h2>
+          <p>按当前赛季总积分自动计算预计奖励</p>
+        </div>
+        <div class="podium-stage">
+          <div id="top-four" class="top-four-grid"></div>
+        </div>
+      </section>
+
+      <section class="section weak-section" aria-labelledby="weak-player-title">
+        <div class="section-heading">
+          <h2 id="weak-player-title">弱鸡鼓励奖专区</h2>
+          <p>参与不少于 3 次、未进前四、累计积分最低；友情提示，笑归笑，钱照发。</p>
+        </div>
+        <div id="weak-player" class="feature-panel"></div>
+      </section>
+
+      <section class="section" aria-labelledby="standings-title">
+        <div class="section-heading">
+          <h2 id="standings-title">完整积分榜</h2>
+          <p>积分、出勤、复活、奖励全部由 app.js 计算</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>排名</th>
+                <th>玩家</th>
+                <th>总积分</th>
+                <th>出勤</th>
+                <th>累计复活</th>
+                <th>当晚奖励累计</th>
+                <th>预计赛季奖励</th>
+              </tr>
+            </thead>
+            <tbody id="standings-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="latest-game-title">
+        <div class="section-heading">
+          <h2 id="latest-game-title">最近一局战报</h2>
+          <p id="latest-game-meta">按最近日期展示</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>排名</th>
+                <th>玩家</th>
+                <th>最终筹码</th>
+                <th>复活次数</th>
+                <th>基础分</th>
+                <th>筹码奖励分</th>
+                <th>复活扣分</th>
+                <th>当晚积分</th>
+                <th>当晚奖励</th>
+              </tr>
+            </thead>
+            <tbody id="latest-game-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="rules-title">
+        <div class="section-heading">
+          <h2 id="rules-title">规则说明</h2>
+        </div>
+        <div id="rules-list" class="rules-grid"></div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">静态页面，可直接部署到 GitHub Pages。</div>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
