@@ -196,8 +196,10 @@ function calculateSeasonSummary(rules, players, games) {
     (total, game) => total + game.finance.seasonPoolContribution,
     0
   );
+  const seasonHasPoints = standings.some((stats) => stats.totalPoints > 0);
+  const topPrizeStandings = seasonHasPoints ? standings.slice(0, 4) : [];
   const weakPlayerCandidate = calculateWeakPlayerCandidate(standings, rules);
-  const seasonRewards = calculateSeasonRewards(standings, seasonPool, rules, weakPlayerCandidate);
+  const seasonRewards = calculateSeasonRewards(topPrizeStandings, seasonPool, rules, weakPlayerCandidate);
 
   for (const stats of standings) {
     stats.projectedSeasonReward = seasonRewards.get(stats.playerId) ?? 0;
@@ -220,10 +222,11 @@ function calculateSeasonSummary(rules, players, games) {
     games: seasonGames,
     validGames,
     standings,
+    topPrizeStandings,
     seasonPool,
     dinner,
     weakPlayerCandidate,
-    currentLeader: standings[0] ?? null
+    currentLeader: seasonHasPoints ? standings[0] : null
   };
 }
 
@@ -249,8 +252,8 @@ function initializePlayerStats(players) {
 function compareStandings(a, b) {
   return (
     b.totalPoints - a.totalPoints ||
-    b.attendance - a.attendance ||
     a.totalRebuys - b.totalRebuys ||
+    b.attendance - a.attendance ||
     a.playerName.localeCompare(b.playerName, "zh-CN")
   );
 }
@@ -272,11 +275,11 @@ function calculateWeakPlayerCandidate(standings, rules) {
   );
 }
 
-function calculateSeasonRewards(standings, seasonPool, rules, weakPlayerCandidate) {
+function calculateSeasonRewards(topPrizeStandings, seasonPool, rules, weakPlayerCandidate) {
   const rewards = new Map();
   const topFourPool = Math.max(0, seasonPool - rules.season.weakPrize);
 
-  standings.slice(0, 4).forEach((stats, index) => {
+  topPrizeStandings.forEach((stats, index) => {
     const amount = topFourPool * rules.season.topFourPrizePercentages[index];
     rewards.set(stats.playerId, Math.round(amount));
   });
@@ -317,7 +320,12 @@ function summaryCard(label, value, note) {
 
 function renderTopFour(summary) {
   const container = document.querySelector("#top-four");
-  const topFour = summary.standings.slice(0, 4);
+  const topFour = summary.topPrizeStandings ?? [];
+
+  if (topFour.length === 0) {
+    container.innerHTML = '<p class="podium-empty">暂无领奖排名</p>';
+    return;
+  }
 
   container.innerHTML = topFour
     .map(
