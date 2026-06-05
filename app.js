@@ -296,8 +296,8 @@ function renderSeasonSummary(summary) {
 
   progress.textContent = `每 ${summary.rules.season.gamesPerSeason} 次有效牌局结算；当前已完成 ${summary.validGames.length} 次。`;
   overview.innerHTML = [
-    summaryCard("当前赛季", summary.season, "来自 data/rules.json"),
-    summaryCard("已完成局数", `${summary.validGames.length}/${summary.rules.season.gamesPerSeason}`, "只统计至少 6 人的有效牌局"),
+    summaryCard("当前赛季", summary.season, "---弱鸡脱离战"),
+    summaryCard("已完成局数/赛季结算局数", `${summary.validGames.length}/${summary.rules.season.gamesPerSeason}`, "只统计至少 6 人的有效牌局"),
     summaryCard("赛季奖励池", yuan.format(summary.seasonPool), `含聚餐基金剩余 ${yuan.format(summary.dinner.surplusToSeasonPool)}`),
     summaryCard("聚餐基金", yuan.format(summary.dinner.covered), `AA 超出 ${yuan.format(summary.dinner.shortfall)}`),
     summaryCard("当前第一", leader ? leader.playerName : "暂无", leader ? `${leader.totalPoints} 分` : "暂无有效积分"),

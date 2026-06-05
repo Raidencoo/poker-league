@@ -1,42 +1,42 @@
 [
   {
-    "id": "alex",
-    "name": "阿乐",
+    "id": "raiden",
+    "name": "赌神",
     "avatar": "avatars/default.svg"
   },
   {
-    "id": "ben",
-    "name": "本本",
+    "id": "xuqiang",
+    "name": "159徐",
     "avatar": "avatars/default.svg"
   },
   {
-    "id": "chen",
-    "name": "陈哥",
+    "id": "gougou",
+    "name": "jay",
     "avatar": "avatars/default.svg"
   },
   {
-    "id": "david",
-    "name": "大卫",
+    "id": "kai",
+    "name": "凯风依旧",
     "avatar": "avatars/default.svg"
   },
   {
-    "id": "eric",
-    "name": "二饼",
+    "id": "peng",
+    "name": "鹏仔",
     "avatar": "avatars/default.svg"
   },
   {
-    "id": "frank",
-    "name": "飞飞",
+    "id": "zhengming",
+    "name": "锐女（待定）",
     "avatar": "avatars/default.svg"
   },
   {
-    "id": "gary",
-    "name": "老高",
+    "id": "kai-g",
+    "name": "凯女（待定）",
     "avatar": "avatars/default.svg"
   },
   {
-    "id": "hao",
-    "name": "浩子",
+    "id": "yang",
+    "name": "杨仔",
     "avatar": "avatars/default.svg"
   }
 ]
