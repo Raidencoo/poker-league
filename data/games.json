@@ -1,3 +1,18 @@
 [
-
+  {
+    "id": "game-005",
+    "season": "2026-S1",
+    "date": "2026-06-6",
+    "title": "第1局",
+    "dinnerCost": 343,
+    "participants": [
+      { "playerId": "raiden", "finalChips": 100, "rebuys": 1 },
+      { "playerId": "qiang", "finalChips": 3280, "rebuys": 0 },
+      { "playerId": "gou", "finalChips": -665, "rebuys": 1 },
+      { "playerId": "kai", "finalChips": -999, "rebuys": 2 },
+      { "playerId": "rui", "finalChips": -865, "rebuys": 0 },
+      { "playerId": "kai-g", "finalChips": -975, "rebuys": -1 },
+      { "playerId": "yang", "finalChips": 210, "rebuys": 2 }
+    ]
+  }
 ]
