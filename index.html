@@ -76,7 +76,14 @@
       <section class="section" aria-labelledby="latest-game-title">
         <div class="section-heading">
           <h2 id="latest-game-title">最近一局战报</h2>
-          <p id="latest-game-meta">按最近日期展示</p>
+          <div class="battle-toolbar" aria-label="历史战报切换">
+            <p id="latest-game-meta">按最近日期展示</p>
+            <div class="battle-controls">
+              <button id="previous-game" class="battle-button" type="button">上一局</button>
+              <span id="latest-game-position" class="battle-position" aria-live="polite">- / -</span>
+              <button id="next-game" class="battle-button" type="button">下一局</button>
+            </div>
+          </div>
         </div>
         <div class="table-wrap">
           <table>

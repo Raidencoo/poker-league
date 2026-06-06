@@ -10,6 +10,8 @@ const yuan = new Intl.NumberFormat("zh-CN", {
   maximumFractionDigits: 0
 });
 
+let selectedGameHistoryIndex = null;
+
 document.addEventListener("DOMContentLoaded", init);
 
 async function init() {
@@ -91,14 +93,18 @@ function calculateGameResult(game, playersById, rules) {
 }
 
 function getGameDateValue(game) {
-  const match = String(game.date).match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  const match = String(game.date).match(
+    /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/
+  );
 
   if (!match) {
     return 0;
   }
 
-  const [, year, month, day] = match.map(Number);
-  return Date.UTC(year, month - 1, day);
+  const [, year, month, day, hour = 0, minute = 0, second = 0] = match.map((value) =>
+    Number(value ?? 0)
+  );
+  return Date.UTC(year, month - 1, day, hour, minute, second);
 }
 
 function compareGamesByDateThenInputOrder(a, b) {
@@ -110,6 +116,18 @@ function compareGamesByDateThenInputOrder(a, b) {
 
 function getLatestGame(games) {
   return [...games].sort(compareGamesByDateThenInputOrder).at(-1) ?? null;
+}
+
+function getGameHistory(games) {
+  return [...games].sort(compareGamesByDateThenInputOrder);
+}
+
+function clampGameHistoryIndex(index, games) {
+  if (games.length === 0) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(index, games.length - 1));
 }
 
 function calculateNightRewards(sortedParticipants, rules) {
@@ -411,18 +429,46 @@ function renderStandings(summary) {
 }
 
 function renderLatestGame(summary) {
-  const latestGame = getLatestGame(summary.validGames);
+  const games = getGameHistory(summary.validGames);
   const meta = document.querySelector("#latest-game-meta");
   const tbody = document.querySelector("#latest-game-body");
+  const previousButton = document.querySelector("#previous-game");
+  const nextButton = document.querySelector("#next-game");
+  const position = document.querySelector("#latest-game-position");
 
-  if (!latestGame) {
+  if (games.length === 0) {
     meta.textContent = "暂无有效牌局";
+    position.textContent = "0 / 0";
+    previousButton.disabled = true;
+    nextButton.disabled = true;
     tbody.innerHTML = "";
     return;
   }
 
-  meta.textContent = `${latestGame.title} · ${latestGame.date} · ${latestGame.participantCount} 人`;
-  tbody.innerHTML = latestGame.rows
+  if (selectedGameHistoryIndex === null || selectedGameHistoryIndex >= games.length) {
+    selectedGameHistoryIndex = games.length - 1;
+  }
+
+  selectedGameHistoryIndex = clampGameHistoryIndex(selectedGameHistoryIndex, games);
+
+  const selectedGame = games[selectedGameHistoryIndex];
+  const canGoPrevious = selectedGameHistoryIndex > 0;
+  const canGoNext = selectedGameHistoryIndex < games.length - 1;
+
+  meta.textContent = `${selectedGame.title} · ${selectedGame.date} · ${selectedGame.participantCount} 人`;
+  position.textContent = `${selectedGameHistoryIndex + 1} / ${games.length}`;
+  previousButton.disabled = !canGoPrevious;
+  nextButton.disabled = !canGoNext;
+  previousButton.onclick = () => {
+    selectedGameHistoryIndex = clampGameHistoryIndex(selectedGameHistoryIndex - 1, games);
+    renderLatestGame(summary);
+  };
+  nextButton.onclick = () => {
+    selectedGameHistoryIndex = clampGameHistoryIndex(selectedGameHistoryIndex + 1, games);
+    renderLatestGame(summary);
+  };
+
+  tbody.innerHTML = selectedGame.rows
     .map(
       (row) => `
         <tr>

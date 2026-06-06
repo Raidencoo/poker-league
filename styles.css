@@ -231,6 +231,64 @@ h1 {
   font-weight: 500;
 }
 
+.battle-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.battle-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.battle-button {
+  min-height: 2rem;
+  padding: var(--space-2xs) var(--space-sm);
+  border: var(--rule-thick) solid var(--color-ink);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  transition: transform var(--dur-short) var(--ease-out);
+}
+
+.battle-button:hover:not(:disabled) {
+  transform: translateY(-0.125rem);
+}
+
+.battle-button:focus-visible {
+  outline: var(--rule-thick) solid var(--color-focus);
+  outline-offset: var(--space-2xs);
+}
+
+.battle-button:active:not(:disabled) {
+  transform: none;
+}
+
+.battle-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.battle-position {
+  min-width: 3.25rem;
+  color: var(--color-muted);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  text-align: center;
+}
+
 .summary-grid,
 .top-four-grid,
 .rules-grid {
@@ -627,9 +685,17 @@ tbody tr:last-child td {
   }
 
   .header-grid,
-  .section-heading,
   .feature-panel {
     grid-template-columns: 1fr;
+  }
+
+  .section-heading {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .battle-toolbar {
+    justify-content: flex-start;
   }
 
   .header-mark {
