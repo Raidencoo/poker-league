@@ -85,12 +85,12 @@ http://localhost:8080
   "title": "第五局",
   "dinnerCost": 380,
   "participants": [
-    { "playerId": "alex", "finalChips": 2600, "rebuys": 0 },
-    { "playerId": "ben", "finalChips": 2100, "rebuys": 1 },
-    { "playerId": "chen", "finalChips": 1500, "rebuys": 0 },
-    { "playerId": "david", "finalChips": 900, "rebuys": 2 },
-    { "playerId": "eric", "finalChips": 600, "rebuys": 1 },
-    { "playerId": "frank", "finalChips": 400, "rebuys": 0 }
+    { "playerId": "alex", "finalChips": 1600, "rebuys": 0 },
+    { "playerId": "ben", "finalChips": 1100, "rebuys": 1 },
+    { "playerId": "chen", "finalChips": 500, "rebuys": 0 },
+    { "playerId": "david", "finalChips": -100, "rebuys": 2 },
+    { "playerId": "eric", "finalChips": -400, "rebuys": 1 },
+    { "playerId": "frank", "finalChips": -600, "rebuys": 0 }
   ]
 }
 ```
@@ -104,7 +104,7 @@ http://localhost:8080
 - `dinnerCost`：本局实际聚餐费用，饮品费不计入。
 - `participants`：本局参与者，至少 6 人才是有效牌局。
 - `playerId`：玩家 ID，对应 `data/players.json`。
-- `finalChips`：玩家本局最终筹码。
+- `finalChips`：玩家本局筹码净值，即 `最终筹码 - 1000`。例如最终剩 100，填写 `-900`；最终为 3280，填写 `2280`。
 - `rebuys`：玩家本局复活次数。
 - `leftEarly`：可选。如果中途无故离场，写 `"leftEarly": true`，当晚积分记 0。
 
@@ -132,8 +132,8 @@ http://localhost:8080
 - 每次复活获得 500 筹码。
 - 复活扣分：第 1 次 -2，第 2 次 -3，第 3 次 -4，第 4 次及以后每次 -5。
 - 复活过的玩家不能领取当晚第一名奖励。
-- 如果真实筹码第一名复活过，第一名奖励顺延给筹码排名最高的未复活玩家。
-- 当晚积分仍按真实筹码排名计算，不受奖励顺延影响。
+- 如果筹码净值第一名复活过，第一名奖励顺延给筹码排名最高的未复活玩家。
+- 当晚积分仍按筹码净值排名计算，不受奖励顺延影响。
 
 ## 积分规则
 
@@ -158,12 +158,13 @@ http://localhost:8080
 
 筹码奖励分：
 
-- 最终筹码超过 1000 的部分，每满 500 筹码加 1 分。
+- 筹码净值为正时，每满 500 筹码加 1 分。
 - 单场筹码奖励分最高 8 分。
 
 最低分和离场规则：
 
-- 全程参与最低 1 分。
+- 全程参与的排名基础分最低 1 分。
+- 复活扣分会继续扣除，因此当晚总积分可能为负数。
 - 中途无故离场 0 分。
 
 赛季排名同分规则：

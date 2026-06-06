@@ -11,8 +11,23 @@
       { "playerId": "gou", "finalChips": -665, "rebuys": 1 },
       { "playerId": "kai", "finalChips": -999, "rebuys": 2 },
       { "playerId": "rui", "finalChips": -865, "rebuys": 0 },
-      { "playerId": "kai-g", "finalChips": -975, "rebuys": -1 },
+      { "playerId": "kai-g", "finalChips": -975, "rebuys": 1 },
       { "playerId": "yang", "finalChips": 210, "rebuys": 2 }
+    ]
+  },
+  {
+    "id": "game-005",
+    "season": "2026-S1",
+    "date": "2026-06-6",
+    "title": "第2局",
+    "dinnerCost": 225,
+    "participants": [
+      { "playerId": "raiden", "finalChips": -1150, "rebuys": 1 },
+      { "playerId": "qiang", "finalChips": -1100, "rebuys": 1 },
+      { "playerId": "kai", "finalChips": 1800, "rebuys": 0 },
+      { "playerId": "rui", "finalChips": 2065, "rebuys": 0 },
+      { "playerId": "kai-g", "finalChips": -665, "rebuys": 0 },
+      { "playerId": "yang", "finalChips": -920, "rebuys": 1 }
     ]
   }
 ]

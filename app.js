@@ -58,7 +58,7 @@ function calculateGameResult(game, playersById, rules) {
     const rawPoints = basePoints + chipBonusPoints + rebuyPenaltyPoints;
     const nightPoints = entry.leftEarly
       ? rules.points.leftEarlyPoint
-      : Math.max(rules.points.minimumFullParticipationPoint, rawPoints);
+      : rawPoints;
 
     return {
       playerId: entry.playerId,
@@ -117,8 +117,8 @@ function calculateBasePoints(rank, leftEarly, rules) {
 }
 
 function calculateChipBonusPoints(finalChips, rules) {
-  const chipsAboveStart = Math.max(0, finalChips - rules.chips.startingChips);
-  const bonus = Math.floor(chipsAboveStart / rules.chips.chipBonusStep);
+  const positiveNetChips = Math.max(0, finalChips);
+  const bonus = Math.floor(positiveNetChips / rules.chips.chipBonusStep);
   return Math.min(bonus, rules.chips.maxChipBonus);
 }
 
@@ -196,8 +196,8 @@ function calculateSeasonSummary(rules, players, games) {
     (total, game) => total + game.finance.seasonPoolContribution,
     0
   );
-  const seasonHasPoints = standings.some((stats) => stats.totalPoints > 0);
-  const topPrizeStandings = seasonHasPoints ? standings.slice(0, 4) : [];
+  const hasValidGames = validGames.length > 0;
+  const topPrizeStandings = hasValidGames ? standings.slice(0, 4) : [];
   const weakPlayerCandidate = calculateWeakPlayerCandidate(standings, rules);
   const seasonRewards = calculateSeasonRewards(topPrizeStandings, seasonPool, rules, weakPlayerCandidate);
 
@@ -226,7 +226,7 @@ function calculateSeasonSummary(rules, players, games) {
     seasonPool,
     dinner,
     weakPlayerCandidate,
-    currentLeader: seasonHasPoints ? standings[0] : null
+    currentLeader: hasValidGames ? standings[0] : null
   };
 }
 
@@ -449,7 +449,7 @@ function renderRules(rules) {
       <h3>积分</h3>
       <ul>
         <li>基础分：${rules.points.rankBasePoints.join(" / ")}，第 8 名及以后 ${rules.points.rankBasePointAfterSeventh} 分。</li>
-        <li>超过 ${rules.chips.startingChips} 筹码后，每满 ${rules.chips.chipBonusStep} 加 1 分，最高 ${rules.chips.maxChipBonus} 分。</li>
+        <li>筹码净值为正时，每满 ${rules.chips.chipBonusStep} 加 1 分，最高 ${rules.chips.maxChipBonus} 分。</li>
         <li>复活扣分依次为 ${rules.chips.rebuyPenalties.join(" / ")}，第 4 次起每次 ${rules.chips.rebuyPenaltyAfterThird}。</li>
       </ul>
     </article>
