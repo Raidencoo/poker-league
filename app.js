@@ -90,6 +90,28 @@ function calculateGameResult(game, playersById, rules) {
   };
 }
 
+function getGameDateValue(game) {
+  const match = String(game.date).match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+
+  if (!match) {
+    return 0;
+  }
+
+  const [, year, month, day] = match.map(Number);
+  return Date.UTC(year, month - 1, day);
+}
+
+function compareGamesByDateThenInputOrder(a, b) {
+  return (
+    getGameDateValue(a) - getGameDateValue(b) ||
+    (a.sourceIndex ?? 0) - (b.sourceIndex ?? 0)
+  );
+}
+
+function getLatestGame(games) {
+  return [...games].sort(compareGamesByDateThenInputOrder).at(-1) ?? null;
+}
+
 function calculateNightRewards(sortedParticipants, rules) {
   const rewards = new Map();
   const prizeAmounts = rules.money.nightRewardPrizes;
@@ -170,9 +192,13 @@ function calculateSeasonSummary(rules, players, games) {
   const playersById = new Map(players.map((player) => [player.id, player]));
   const season = rules.season.current;
   const seasonGames = games
-    .filter((game) => game.season === season)
-    .map((game) => calculateGameResult(game, playersById, rules))
-    .sort((a, b) => a.date.localeCompare(b.date));
+    .map((game, sourceIndex) => ({ game, sourceIndex }))
+    .filter(({ game }) => game.season === season)
+    .map(({ game, sourceIndex }) => ({
+      ...calculateGameResult(game, playersById, rules),
+      sourceIndex
+    }))
+    .sort(compareGamesByDateThenInputOrder);
   const validGames = seasonGames.filter((game) => game.isValid);
   const playerStats = initializePlayerStats(players);
 
@@ -385,7 +411,7 @@ function renderStandings(summary) {
 }
 
 function renderLatestGame(summary) {
-  const latestGame = [...summary.validGames].sort((a, b) => b.date.localeCompare(a.date))[0];
+  const latestGame = getLatestGame(summary.validGames);
   const meta = document.querySelector("#latest-game-meta");
   const tbody = document.querySelector("#latest-game-body");
 
