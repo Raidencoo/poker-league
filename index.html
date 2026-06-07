@@ -33,6 +33,44 @@
         <div id="season-overview" class="summary-grid" aria-live="polite"></div>
       </section>
 
+      <section class="section dynamics-section" aria-labelledby="dynamics-title">
+        <div class="section-heading">
+          <h2 id="dynamics-title">赛季动态看板</h2>
+          <p>手机优先展示最近一局后的排名变化、本局高光和弱鸡危险区。</p>
+        </div>
+        <div class="dynamics-grid">
+          <article class="dynamic-card movement-card">
+            <div class="dynamic-card-heading">
+              <h3>排名变化榜</h3>
+              <p id="rank-movement-meta">等待有效牌局</p>
+            </div>
+            <div id="rank-movements" class="movement-list"></div>
+          </article>
+          <article class="dynamic-card highlight-card">
+            <div class="dynamic-card-heading">
+              <h3>本局高光</h3>
+              <p>最近一局最值得发群的几件事</p>
+            </div>
+            <div id="latest-highlights" class="highlight-list"></div>
+          </article>
+          <article class="dynamic-card danger-card">
+            <div class="dynamic-card-heading">
+              <h3>弱鸡危险区</h3>
+              <p>参与不少于 3 次、未进前四、累计积分最低；笑归笑，钱照发。</p>
+            </div>
+            <div id="weak-danger-zone" class="danger-zone"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section honors-section" aria-labelledby="honors-title">
+        <div class="section-heading">
+          <h2 id="honors-title">赛季荣誉墙</h2>
+          <p>从所有有效牌局自动生成，专治赛后记忆偏差。</p>
+        </div>
+        <div id="honor-wall" class="honor-grid"></div>
+      </section>
+
       <section class="section podium-section" aria-labelledby="top-four-title">
         <div class="section-heading">
           <h2 id="top-four-title">TOP 4 领奖台</h2>
@@ -41,14 +79,6 @@
         <div class="podium-stage">
           <div id="top-four" class="top-four-grid"></div>
         </div>
-      </section>
-
-      <section class="section weak-section" aria-labelledby="weak-player-title">
-        <div class="section-heading">
-          <h2 id="weak-player-title">弱鸡鼓励奖专区</h2>
-          <p>参与不少于 3 次、未进前四、累计积分最低；友情提示，笑归笑，钱照发。</p>
-        </div>
-        <div id="weak-player" class="feature-panel"></div>
       </section>
 
       <section class="section" aria-labelledby="standings-title">
@@ -85,6 +115,7 @@
             </div>
           </div>
         </div>
+        <div id="game-story" class="game-story"></div>
         <div class="table-wrap">
           <table>
             <thead>
@@ -116,6 +147,14 @@
     <footer class="site-footer">
       <div class="container">不只是德州，是兄弟们的战场</div>
     </footer>
+
+    <div id="player-profile" class="profile-shell" hidden>
+      <button class="profile-backdrop" type="button" data-profile-close aria-label="关闭玩家档案"></button>
+      <aside class="profile-drawer" aria-labelledby="profile-title" aria-modal="true" role="dialog">
+        <button class="profile-close" type="button" data-profile-close aria-label="关闭玩家档案">关闭</button>
+        <div id="profile-content"></div>
+      </aside>
+    </div>
 
     <script src="app.js"></script>
   </body>

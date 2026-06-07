@@ -71,7 +71,7 @@ http://localhost:8080
 
 - `id`：玩家唯一标识，不要重复。
 - `name`：页面展示名称。
-- `avatar`：头像路径，默认可使用 `avatars/default.svg`。
+- `avatar`：头像路径，默认可使用 `avatars/default.svg`；建议使用压缩后的 SVG 头像，避免 GitHub Pages 加载过慢。
 
 ## 记录新一局
 
