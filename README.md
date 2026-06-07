@@ -84,6 +84,7 @@ http://localhost:8080
   "date": "2026-06-12",
   "title": "第五局",
   "dinnerCost": 380,
+  "venueFee": 120,
   "participants": [
     { "playerId": "alex", "finalChips": 1600, "rebuys": 0 },
     { "playerId": "ben", "finalChips": 1100, "rebuys": 1 },
@@ -102,6 +103,7 @@ http://localhost:8080
 - `date`：牌局日期，建议使用 `YYYY-MM-DD`。
 - `title`：牌局标题。
 - `dinnerCost`：本局实际聚餐费用，饮品费不计入。
+- `venueFee`：可选。本局实际场地费；如果不填写，使用 `data/rules.json` 中的默认场地费。
 - `participants`：本局参与者，至少 6 人才是有效牌局。
 - `playerId`：玩家 ID，对应 `data/players.json`。
 - `finalChips`：玩家本局筹码净值，即 `最终筹码 - 1000`。例如最终剩 100，填写 `-900`；最终为 3280，填写 `2280`。
@@ -118,10 +120,10 @@ http://localhost:8080
 
 ## 资金规则
 
-- 场地费固定 80 元。
+- 默认场地费为 80 元，可在单局 `venueFee` 中按实际花销覆盖。
 - 当晚奖励固定 300 元：第一名 170 元，第二名 80 元，第三名 50 元。
 - 每次固定 100 元进入赛季奖励池。
-- 扣除场地费、当晚奖励和固定赛季奖励池后，剩余金额作为本次聚餐基金。
+- 扣除本局场地费、当晚奖励和固定赛季奖励池后，剩余金额作为本次聚餐基金。
 - 如果本次聚餐基金不够，超出部分由实际聚餐人员 AA。
 - 如果本次聚餐基金有剩余，剩余金额汇入赛季奖励池。
 

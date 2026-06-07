@@ -176,6 +176,7 @@ function calculateGameFinance(game, rules, isValid) {
   if (!isValid) {
     return {
       buyInTotal: 0,
+      venueFee: 0,
       baseDinnerFund: 0,
       dinnerCoveredByFund: 0,
       dinnerShortfall: 0,
@@ -185,9 +186,10 @@ function calculateGameFinance(game, rules, isValid) {
   }
 
   const buyInTotal = game.participants.length * rules.money.buyInPerPlayer;
+  const venueFee = getGameVenueFee(game, rules);
   const baseDinnerFund =
     buyInTotal -
-    rules.money.venueFee -
+    venueFee -
     rules.money.nightRewardTotal -
     rules.money.seasonPoolPerGame;
   const dinnerCost = game.dinnerCost ?? 0;
@@ -198,12 +200,17 @@ function calculateGameFinance(game, rules, isValid) {
 
   return {
     buyInTotal,
+    venueFee,
     baseDinnerFund,
     dinnerCoveredByFund,
     dinnerShortfall,
     dinnerSurplusToSeasonPool,
     seasonPoolContribution
   };
+}
+
+function getGameVenueFee(game, rules) {
+  return game.venueFee ?? rules.money.venueFee;
 }
 
 function calculateSeasonSummary(rules, players, games) {
@@ -251,13 +258,14 @@ function calculateSeasonSummary(rules, players, games) {
 
   const dinner = validGames.reduce(
     (totals, game) => {
+      totals.venueFee += game.finance.venueFee;
       totals.baseFund += game.finance.baseDinnerFund;
       totals.covered += game.finance.dinnerCoveredByFund;
       totals.shortfall += game.finance.dinnerShortfall;
       totals.surplusToSeasonPool += game.finance.dinnerSurplusToSeasonPool;
       return totals;
     },
-    { baseFund: 0, covered: 0, shortfall: 0, surplusToSeasonPool: 0 }
+    { venueFee: 0, baseFund: 0, covered: 0, shortfall: 0, surplusToSeasonPool: 0 }
   );
 
   return {
@@ -346,7 +354,7 @@ function renderSeasonSummary(summary) {
     summaryCard("当前赛季", summary.season, "---弱鸡脱离战"),
     summaryCard("已完成局数/赛季结算局数", `${summary.validGames.length}/${summary.rules.season.gamesPerSeason}`, "只统计至少 6 人的有效牌局"),
     summaryCard("赛季奖励池", yuan.format(summary.seasonPool), `含聚餐基金剩余 ${yuan.format(summary.dinner.surplusToSeasonPool)}`),
-    summaryCard("聚餐基金", yuan.format(summary.dinner.covered), `AA 超出 ${yuan.format(summary.dinner.shortfall)}`),
+    summaryCard("已用聚餐基金", yuan.format(summary.dinner.covered), `场地费 ${yuan.format(summary.dinner.venueFee)} · AA 超出 ${yuan.format(summary.dinner.shortfall)}`),
     summaryCard("当前第一", leader ? leader.playerName : "暂无", leader ? `${leader.totalPoints} 分` : "暂无有效积分"),
     summaryCard("弱鸡奖候选", weak ? weak.playerName : "暂无", weak ? `${weak.totalPoints} 分 · 出勤 ${weak.attendance}` : "需满足出勤和排名条件")
   ].join("");
@@ -455,7 +463,7 @@ function renderLatestGame(summary) {
   const canGoPrevious = selectedGameHistoryIndex > 0;
   const canGoNext = selectedGameHistoryIndex < games.length - 1;
 
-  meta.textContent = `${selectedGame.title} · ${selectedGame.date} · ${selectedGame.participantCount} 人`;
+  meta.textContent = `${selectedGame.title} · ${selectedGame.date} · ${selectedGame.participantCount} 人 · 场地 ${yuan.format(selectedGame.finance.venueFee)}`;
   position.textContent = `${selectedGameHistoryIndex + 1} / ${games.length}`;
   previousButton.disabled = !canGoPrevious;
   nextButton.disabled = !canGoNext;
@@ -505,7 +513,7 @@ function renderRules(rules) {
       <h3>牌局资金</h3>
       <ul>
         <li>每人每次缴纳 ${yuan.format(rules.money.buyInPerPlayer)}，至少 ${rules.money.minimumPlayers} 人有效。</li>
-        <li>场地费 ${yuan.format(rules.money.venueFee)}，当晚奖励 ${yuan.format(rules.money.nightRewardTotal)}。</li>
+        <li>默认场地费 ${yuan.format(rules.money.venueFee)}，可在每局记录中覆盖；当晚奖励 ${yuan.format(rules.money.nightRewardTotal)}。</li>
         <li>每局固定 ${yuan.format(rules.money.seasonPoolPerGame)} 进入赛季奖励池。</li>
       </ul>
     </article>

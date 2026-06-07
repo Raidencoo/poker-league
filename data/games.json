@@ -5,6 +5,7 @@
     "date": "2026-06-06 12:00",
     "title": "第1局",
     "dinnerCost": 343,
+    "venueFee": 80,
     "participants": [
       { "playerId": "raiden", "finalChips": 100, "rebuys": 1 },
       { "playerId": "qiang", "finalChips": 3280, "rebuys": 0 },
@@ -21,6 +22,7 @@
     "date": "2026-06-06 18:00",
     "title": "第2局",
     "dinnerCost": 225,
+    "venueFee": 80,
     "participants": [
       { "playerId": "raiden", "finalChips": -1150, "rebuys": 1 },
       { "playerId": "qiang", "finalChips": -1100, "rebuys": 1 },
