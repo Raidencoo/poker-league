@@ -20,6 +20,7 @@ async function init() {
     const seasonSummary = calculateSeasonSummary(data.rules, data.players, data.games);
 
     renderSeasonSummary(seasonSummary);
+    renderFinanceReport(seasonSummary);
     renderSeasonDynamics(seasonSummary);
     renderHonorWall(seasonSummary);
     renderTopFour(seasonSummary);
@@ -179,40 +180,107 @@ function calculateGameFinance(game, rules, isValid) {
     return {
       buyInTotal: 0,
       venueFee: 0,
+      nightRewardTotal: 0,
+      dinnerCost: 0,
+      fixedSeasonPoolContribution: 0,
       baseDinnerFund: 0,
       dinnerCoveredByFund: 0,
       dinnerShortfall: 0,
       dinnerSurplusToSeasonPool: 0,
-      seasonPoolContribution: 0
+      seasonPoolContribution: 0,
+      fundingTotal: 0,
+      allocatedTotal: 0,
+      isBalanced: true
     };
   }
 
   const buyInTotal = game.participants.length * rules.money.buyInPerPlayer;
   const venueFee = getGameVenueFee(game, rules);
+  const nightRewardTotal = rules.money.nightRewardTotal;
+  const fixedSeasonPoolContribution = rules.money.seasonPoolPerGame;
   const baseDinnerFund =
     buyInTotal -
     venueFee -
-    rules.money.nightRewardTotal -
-    rules.money.seasonPoolPerGame;
+    nightRewardTotal -
+    fixedSeasonPoolContribution;
   const dinnerCost = game.dinnerCost ?? 0;
   const dinnerCoveredByFund = Math.min(baseDinnerFund, dinnerCost);
   const dinnerShortfall = Math.max(0, dinnerCost - baseDinnerFund);
   const dinnerSurplusToSeasonPool = Math.max(0, baseDinnerFund - dinnerCost);
-  const seasonPoolContribution = rules.money.seasonPoolPerGame + dinnerSurplusToSeasonPool;
+  const seasonPoolContribution = fixedSeasonPoolContribution + dinnerSurplusToSeasonPool;
+  const fundingTotal = buyInTotal + dinnerShortfall;
+  const allocatedTotal = venueFee + nightRewardTotal + dinnerCost + seasonPoolContribution;
 
   return {
     buyInTotal,
     venueFee,
+    nightRewardTotal,
+    dinnerCost,
+    fixedSeasonPoolContribution,
     baseDinnerFund,
     dinnerCoveredByFund,
     dinnerShortfall,
     dinnerSurplusToSeasonPool,
-    seasonPoolContribution
+    seasonPoolContribution,
+    fundingTotal,
+    allocatedTotal,
+    isBalanced: fundingTotal === allocatedTotal
   };
 }
 
 function getGameVenueFee(game, rules) {
   return game.venueFee ?? rules.money.venueFee;
+}
+
+function calculateSeasonFinanceReport(validGames) {
+  const totals = validGames.reduce(
+    (report, game) => {
+      report.buyInTotal += game.finance.buyInTotal;
+      report.venueFee += game.finance.venueFee;
+      report.nightRewardTotal += game.finance.nightRewardTotal;
+      report.dinnerCost += game.finance.dinnerCost;
+      report.fixedSeasonPoolContribution += game.finance.fixedSeasonPoolContribution;
+      report.dinnerShortfall += game.finance.dinnerShortfall;
+      report.dinnerSurplusToSeasonPool += game.finance.dinnerSurplusToSeasonPool;
+      report.seasonPoolContribution += game.finance.seasonPoolContribution;
+      report.fundingTotal += game.finance.fundingTotal;
+      report.allocatedTotal += game.finance.allocatedTotal;
+      return report;
+    },
+    {
+      buyInTotal: 0,
+      venueFee: 0,
+      nightRewardTotal: 0,
+      dinnerCost: 0,
+      fixedSeasonPoolContribution: 0,
+      dinnerShortfall: 0,
+      dinnerSurplusToSeasonPool: 0,
+      seasonPoolContribution: 0,
+      fundingTotal: 0,
+      allocatedTotal: 0
+    }
+  );
+  const allocationItems = [
+    { key: "venue", label: "场地费", amount: totals.venueFee },
+    { key: "rewards", label: "当晚奖励", amount: totals.nightRewardTotal },
+    { key: "dinner", label: "聚餐实付", amount: totals.dinnerCost },
+    { key: "season", label: "赛季池", amount: totals.seasonPoolContribution }
+  ].map((item) => ({
+    ...item,
+    percentage: totals.allocatedTotal > 0
+      ? (item.amount / totals.allocatedTotal) * 100
+      : 0
+  }));
+
+  return {
+    ...totals,
+    gameCount: validGames.length,
+    games: validGames,
+    allocationItems,
+    isBalanced:
+      totals.fundingTotal === totals.allocatedTotal &&
+      validGames.every((game) => game.finance.isBalanced)
+  };
 }
 
 function calculateSeasonSummary(rules, players, games) {
@@ -263,6 +331,7 @@ function calculateSeasonSummary(rules, players, games) {
   const playerProfiles = calculatePlayerProfiles(standings, validGames);
   const seasonHonors = calculateSeasonHonors(standings, validGames, playerProfiles);
   const latestGameStory = calculateGameStory(latestGame);
+  const financeReport = calculateSeasonFinanceReport(validGames);
 
   return {
     rules,
@@ -279,6 +348,7 @@ function calculateSeasonSummary(rules, players, games) {
     playerProfiles,
     seasonHonors,
     latestGameStory,
+    financeReport,
     weakPlayerCandidate,
     currentLeader: hasValidGames ? standings[0] : null
   };
@@ -707,6 +777,165 @@ function summaryCard(label, value, note, options = {}) {
       <div class="summary-note">${escapeHtml(note)}</div>
       ${progressHtml}
     </article>
+  `;
+}
+
+function renderFinanceReport(summary) {
+  const report = summary.financeReport;
+  const status = document.querySelector("#finance-status");
+
+  if (report.gameCount === 0) {
+    status.textContent = "暂无有效牌局，财报等待开账。";
+  } else {
+    status.textContent = `${report.gameCount} 局 · ${report.isBalanced ? "账目已平" : "发现账目异常"} · 来源 ${yuan.format(report.fundingTotal)} / 去向 ${yuan.format(report.allocatedTotal)}`;
+  }
+  status.className = report.isBalanced ? "finance-status balanced" : "finance-status unbalanced";
+
+  renderFinanceSummary(report);
+  renderFinanceAllocation(report);
+  renderFinanceStatements(report);
+}
+
+function renderFinanceSummary(report) {
+  const container = document.querySelector("#finance-summary");
+  const metrics = [
+    ["总缴费", report.buyInTotal, `${report.gameCount} 次有效牌局`],
+    ["场地费", report.venueFee, "每局按实际场地费扣减"],
+    ["当晚奖励", report.nightRewardTotal, "每局前三名奖金"],
+    ["聚餐实付", report.dinnerCost, "饮品费不计入"],
+    ["赛季奖励池", report.seasonPoolContribution, `含聚餐剩余 ${yuan.format(report.dinnerSurplusToSeasonPool)}`],
+    ["AA 补足", report.dinnerShortfall, report.dinnerShortfall > 0 ? "聚餐基金不足部分" : "目前无需额外补足"]
+  ];
+
+  container.innerHTML = metrics
+    .map(
+      ([label, amount, note]) => `
+        <div class="finance-metric">
+          <span>${label}</span>
+          <strong>${yuan.format(amount)}</strong>
+          <small>${note}</small>
+        </div>
+      `
+    )
+    .join("");
+}
+
+function renderFinanceAllocation(report) {
+  const container = document.querySelector("#finance-allocation");
+
+  if (report.allocatedTotal === 0) {
+    container.innerHTML = '<p class="empty-state">暂无资金去向。</p>';
+    return;
+  }
+
+  const allocationLabel = report.allocationItems
+    .map((item) => `${item.label} ${yuan.format(item.amount)}`)
+    .join("，");
+
+  container.innerHTML = `
+    <div class="finance-subheading">
+      <div>
+        <span class="meta-label">资金去向</span>
+        <strong>${yuan.format(report.allocatedTotal)}</strong>
+      </div>
+      <p>缴费与 AA 补足全部分配完毕</p>
+    </div>
+    <div class="allocation-bar" role="img" aria-label="${allocationLabel}">
+      ${report.allocationItems
+        .map(
+          (item) => `
+            <span
+              class="allocation-segment allocation-${item.key}"
+              style="width: ${item.percentage}%"
+              title="${item.label} ${yuan.format(item.amount)}"
+            ></span>
+          `
+        )
+        .join("")}
+    </div>
+    <div class="allocation-legend">
+      ${report.allocationItems
+        .map(
+          (item) => `
+            <div>
+              <span class="allocation-dot allocation-${item.key}"></span>
+              <span>${item.label}</span>
+              <strong>${yuan.format(item.amount)}</strong>
+              <small>${Math.round(item.percentage)}%</small>
+            </div>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function renderFinanceStatements(report) {
+  const container = document.querySelector("#finance-statements");
+  const games = [...report.games].sort(compareGamesByDateThenInputOrder).reverse();
+
+  if (games.length === 0) {
+    container.innerHTML = '<p class="empty-state">暂无有效牌局账单。</p>';
+    return;
+  }
+
+  container.innerHTML = games
+    .map((game, index) => renderGameFinanceStatement(game, index === 0))
+    .join("");
+}
+
+function renderGameFinanceStatement(game, isOpen) {
+  const finance = game.finance;
+  const balanceLabel = finance.isBalanced ? "账目平衡" : "账目异常";
+  const seasonPoolNote = finance.dinnerSurplusToSeasonPool > 0
+    ? `固定 ${yuan.format(finance.fixedSeasonPoolContribution)} + 聚餐剩余 ${yuan.format(finance.dinnerSurplusToSeasonPool)}`
+    : `固定进入赛季池 ${yuan.format(finance.fixedSeasonPoolContribution)}`;
+
+  return `
+    <details class="finance-statement ${finance.isBalanced ? "balanced" : "unbalanced"}"${isOpen ? " open" : ""}>
+      <summary>
+        <div class="statement-title">
+          <strong>${escapeHtml(game.title)}</strong>
+          <span>${escapeHtml(game.date)} · ${game.participantCount} 人</span>
+        </div>
+        <div class="statement-total">
+          <strong>${yuan.format(finance.fundingTotal)}</strong>
+          <span>${balanceLabel}</span>
+        </div>
+      </summary>
+      <div class="statement-body">
+        <div class="statement-column income">
+          <h4>资金来源</h4>
+          ${financeRow("参赛缴费", finance.buyInTotal)}
+          ${financeRow("AA 补足", finance.dinnerShortfall)}
+          ${financeRow("来源合计", finance.fundingTotal, true)}
+        </div>
+        <div class="statement-column expense">
+          <h4>资金去向</h4>
+          ${financeRow("场地费", finance.venueFee)}
+          ${financeRow("当晚奖励", finance.nightRewardTotal)}
+          ${financeRow("聚餐实付", finance.dinnerCost)}
+          ${financeRow("赛季池贡献", finance.seasonPoolContribution, false, seasonPoolNote)}
+          ${financeRow("去向合计", finance.allocatedTotal, true)}
+        </div>
+      </div>
+      <div class="statement-balance">
+        <span>${balanceLabel}</span>
+        <strong>${yuan.format(finance.fundingTotal)} = ${yuan.format(finance.allocatedTotal)}</strong>
+      </div>
+    </details>
+  `;
+}
+
+function financeRow(label, amount, isTotal = false, note = "") {
+  return `
+    <div class="finance-row${isTotal ? " total" : ""}">
+      <div>
+        <span>${label}</span>
+        ${note ? `<small>${note}</small>` : ""}
+      </div>
+      <strong>${yuan.format(amount)}</strong>
+    </div>
   `;
 }
 

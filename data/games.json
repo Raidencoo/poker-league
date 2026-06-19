@@ -47,5 +47,23 @@
       { "playerId": "anafkh", "finalChips": -70, "rebuys": 0 },
       { "playerId": "ming", "finalChips": 1650, "rebuys": 0 }
     ]
+  },
+  {
+    "id": "game-004",
+    "season": "2026-S1",
+    "date": "2026-06-18 19:00",
+    "title": "第4局",
+    "dinnerCost": 400,
+    "venueFee": 50,
+    "participants": [
+      { "playerId": "raiden", "finalChips": -2000, "rebuys": 2 },
+      { "playerId": "qiang", "finalChips": -465, "rebuys": 3 },
+      { "playerId": "kai", "finalChips": -1500, "rebuys": 1 },
+      { "playerId": "rui", "finalChips": 3550, "rebuys": 0 },
+      { "playerId": "anafkh", "finalChips": -435, "rebuys": 1 },
+      { "playerId": "ming", "finalChips": 630, "rebuys": 0 },
+      { "playerId": "yang", "finalChips": 85, "rebuys": 0 },
+      { "playerId": "peng", "finalChips": 605, "rebuys": 2 }
+    ]
   }
 ]
