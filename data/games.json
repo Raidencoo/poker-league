@@ -97,8 +97,8 @@
       { "playerId": "qiang", "finalChips": -530, "rebuys": 2,  "rebuyFine": 30},
       { "playerId": "kai", "finalChips": -3800, "rebuys": 4 ,"rebuyFine": 90},
       { "playerId": "rui", "finalChips": 1800, "rebuys": 0 },
-      { "playerId": "anafkh", "finalChips": -535, "rebuys": 0 },
-      { "playerId": "ming", "finalChips": 2480, "rebuys": 1,"rebuyFine": 10 }
+      { "playerId": "anafkh", "finalChips": -535, "rebuys": 1 },
+      { "playerId": "ming", "finalChips": 2480, "rebuys": 0,"rebuyFine": 10 }
     ]
   }
 ]
