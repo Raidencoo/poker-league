@@ -17,9 +17,15 @@
           <h1>德州朋友局 · 赛季积分榜</h1>
           <p class="site-intro">奖池、积分、最近战报，一张桌看完。</p>
         </div>
-        <div class="header-mark" aria-hidden="true">
-          <span>A</span>
-          <span>K</span>
+        <div class="header-side">
+          <label class="season-picker" for="season-select">
+            <span>查看赛季</span>
+            <select id="season-select" aria-label="选择要查看的赛季"></select>
+          </label>
+          <div class="header-mark" aria-hidden="true">
+            <span>A</span>
+            <span>K</span>
+          </div>
         </div>
       </div>
     </header>
@@ -42,8 +48,15 @@
           <div id="finance-summary" class="finance-summary" aria-live="polite"></div>
           <div id="finance-allocation" class="finance-allocation"></div>
           <div class="finance-statements-heading">
-            <h3>每局账单</h3>
-            <p>只统计有效牌局，饮品费不计入。</p>
+            <div>
+              <h3>每局账单</h3>
+              <p>只统计有效牌局，饮品费不计入。</p>
+            </div>
+            <div class="battle-controls finance-controls" aria-label="每局账单分页">
+              <button id="finance-previous" class="battle-button" type="button">上一局</button>
+              <span id="finance-position" class="battle-position" aria-live="polite">- / -</span>
+              <button id="finance-next" class="battle-button" type="button">下一局</button>
+            </div>
           </div>
           <div id="finance-statements" class="finance-statements"></div>
         </div>
@@ -80,7 +93,7 @@
       <section class="section honors-section" aria-labelledby="honors-title">
         <div class="section-heading">
           <h2 id="honors-title">赛季荣誉墙</h2>
-          <p>从所有有效牌局自动生成，专治赛后记忆偏差。</p>
+          <p>三项奖金荣誉加三项趣味称号，全部按有效牌局自动评选。</p>
         </div>
         <div id="honor-wall" class="honor-grid"></div>
       </section>
@@ -88,7 +101,7 @@
       <section class="section podium-section" aria-labelledby="top-four-title">
         <div class="section-heading">
           <h2 id="top-four-title">TOP 4 领奖台</h2>
-          <p>按当前赛季总积分自动计算预计奖励</p>
+          <p id="top-four-note">按当前赛季总积分自动计算预计奖励</p>
         </div>
         <div class="podium-stage">
           <div id="top-four" class="top-four-grid"></div>
@@ -108,8 +121,9 @@
                 <th>总积分</th>
                 <th>出勤</th>
                 <th>累计复活</th>
+                <th>累计筹码净值</th>
                 <th>当晚奖励累计</th>
-                <th>预计赛季奖励</th>
+                <th id="season-reward-heading">预计赛季奖励</th>
               </tr>
             </thead>
             <tbody id="standings-body"></tbody>
@@ -138,6 +152,7 @@
                 <th>玩家</th>
                 <th>筹码净值</th>
                 <th>复活次数</th>
+                <th>复活罚款</th>
                 <th>基础分</th>
                 <th>筹码奖励分</th>
                 <th>复活扣分</th>

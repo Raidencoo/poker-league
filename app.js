@@ -11,26 +11,118 @@ const yuan = new Intl.NumberFormat("zh-CN", {
 });
 
 let selectedGameHistoryIndex = null;
+let selectedFinanceGameIndex = null;
+let selectedSeason = null;
+let activeSeasonSummary = null;
 
 document.addEventListener("DOMContentLoaded", init);
 
 async function init() {
   try {
     const data = await loadData();
-    const seasonSummary = calculateSeasonSummary(data.rules, data.players, data.games);
+    const seasons = getAvailableSeasons(data.games, data.rules.season.current);
+    selectedSeason = resolveSelectedSeason(
+      seasons,
+      data.rules.season.current,
+      getRequestedSeasonFromUrl()
+    );
 
-    renderSeasonSummary(seasonSummary);
-    renderFinanceReport(seasonSummary);
-    renderSeasonDynamics(seasonSummary);
-    renderHonorWall(seasonSummary);
-    renderTopFour(seasonSummary);
-    renderStandings(seasonSummary);
-    renderLatestGame(seasonSummary);
+    renderSeasonSelector(seasons, selectedSeason);
+    setupSeasonSelectorInteractions(data, seasons);
+    setupPlayerProfileInteractions();
     renderRules(data.rules);
-    setupPlayerProfileInteractions(seasonSummary);
+    renderDashboard(data);
+    syncSeasonUrl(selectedSeason);
   } catch (error) {
     renderError(error);
   }
+}
+
+function renderDashboard(data) {
+  activeSeasonSummary = calculateSeasonSummary(
+    data.rules,
+    data.players,
+    data.games,
+    selectedSeason
+  );
+
+  renderSeasonContext(activeSeasonSummary);
+  renderSeasonSummary(activeSeasonSummary);
+  renderFinanceReport(activeSeasonSummary);
+  renderSeasonDynamics(activeSeasonSummary);
+  renderHonorWall(activeSeasonSummary);
+  renderTopFour(activeSeasonSummary);
+  renderStandings(activeSeasonSummary);
+  renderLatestGame(activeSeasonSummary);
+}
+
+function getRequestedSeasonFromUrl() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return new URLSearchParams(window.location.search).get("season");
+}
+
+function syncSeasonUrl(season) {
+  if (typeof window === "undefined" || !window.history?.replaceState) {
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  url.searchParams.set("season", season);
+  window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
+function renderSeasonSelector(seasons, activeSeason) {
+  const selector = document.querySelector("#season-select");
+
+  selector.innerHTML = seasons
+    .map(
+      (season) => `
+        <option value="${escapeHtml(season.id)}">
+          ${escapeHtml(season.id)} · ${season.isCurrent ? "当前赛季" : "已结束"}
+        </option>
+      `
+    )
+    .join("");
+  selector.value = activeSeason;
+}
+
+function setupSeasonSelectorInteractions(data, seasons) {
+  const selector = document.querySelector("#season-select");
+
+  selector.onchange = () => {
+    selectedSeason = resolveSelectedSeason(
+      seasons,
+      data.rules.season.current,
+      selector.value
+    );
+    selectedGameHistoryIndex = null;
+    selectedFinanceGameIndex = null;
+
+    const profileShell = document.querySelector("#player-profile");
+    if (profileShell) {
+      closePlayerProfile(profileShell);
+    }
+
+    renderSeasonSelector(seasons, selectedSeason);
+    renderDashboard(data);
+    syncSeasonUrl(selectedSeason);
+  };
+}
+
+function renderSeasonContext(summary) {
+  const isCurrentSeason = summary.season === summary.rules.season.current;
+  document.querySelector("#overview-title").textContent = isCurrentSeason
+    ? "当前赛季总览"
+    : `${summary.season} 赛季总览`;
+  document.querySelector("#top-four-note").textContent = isCurrentSeason
+    ? "按当前赛季总积分自动计算预计奖励"
+    : "历史赛季最终排名与奖励";
+  document.querySelector("#season-reward-heading").textContent = isCurrentSeason
+    ? "预计赛季奖励"
+    : "赛季奖励";
 }
 
 async function loadData() {
@@ -72,6 +164,7 @@ function calculateGameResult(game, playersById, rules) {
       rank,
       finalChips: entry.finalChips,
       rebuys: entry.rebuys,
+      rebuyFine: entry.rebuyFine ?? 0,
       leftEarly: Boolean(entry.leftEarly),
       basePoints,
       chipBonusPoints,
@@ -115,6 +208,46 @@ function compareGamesByDateThenInputOrder(a, b) {
     getGameDateValue(a) - getGameDateValue(b) ||
     (a.sourceIndex ?? 0) - (b.sourceIndex ?? 0)
   );
+}
+
+function getAvailableSeasons(games, currentSeason) {
+  const latestDateBySeason = new Map();
+
+  for (const game of games) {
+    const latestDate = latestDateBySeason.get(game.season) ?? 0;
+    latestDateBySeason.set(game.season, Math.max(latestDate, getGameDateValue(game)));
+  }
+
+  if (currentSeason && !latestDateBySeason.has(currentSeason)) {
+    latestDateBySeason.set(currentSeason, 0);
+  }
+
+  return [...latestDateBySeason]
+    .map(([id, latestGameDate]) => ({
+      id,
+      isCurrent: id === currentSeason,
+      latestGameDate
+    }))
+    .sort(
+      (a, b) =>
+        Number(b.isCurrent) - Number(a.isCurrent) ||
+        b.latestGameDate - a.latestGameDate ||
+        b.id.localeCompare(a.id, "zh-CN")
+    );
+}
+
+function resolveSelectedSeason(seasons, currentSeason, requestedSeason) {
+  const seasonIds = new Set(seasons.map((season) => season.id));
+
+  if (requestedSeason && seasonIds.has(requestedSeason)) {
+    return requestedSeason;
+  }
+
+  if (seasonIds.has(currentSeason)) {
+    return currentSeason;
+  }
+
+  return seasons[0]?.id ?? currentSeason;
 }
 
 function getLatestGame(games) {
@@ -176,9 +309,13 @@ function calculateRebuyPenalty(rebuys, rules) {
 }
 
 function calculateGameFinance(game, rules, isValid) {
+  const buyInPerPlayer = getGameBuyInPerPlayer(game, rules);
+
   if (!isValid) {
     return {
+      buyInPerPlayer,
       buyInTotal: 0,
+      rebuyFineTotal: 0,
       venueFee: 0,
       nightRewardTotal: 0,
       dinnerCost: 0,
@@ -194,7 +331,11 @@ function calculateGameFinance(game, rules, isValid) {
     };
   }
 
-  const buyInTotal = game.participants.length * rules.money.buyInPerPlayer;
+  const buyInTotal = game.participants.length * buyInPerPlayer;
+  const rebuyFineTotal = game.participants.reduce(
+    (total, participant) => total + (participant.rebuyFine ?? 0),
+    0
+  );
   const venueFee = getGameVenueFee(game, rules);
   const nightRewardTotal = rules.money.nightRewardTotal;
   const fixedSeasonPoolContribution = rules.money.seasonPoolPerGame;
@@ -207,12 +348,15 @@ function calculateGameFinance(game, rules, isValid) {
   const dinnerCoveredByFund = Math.min(baseDinnerFund, dinnerCost);
   const dinnerShortfall = Math.max(0, dinnerCost - baseDinnerFund);
   const dinnerSurplusToSeasonPool = Math.max(0, baseDinnerFund - dinnerCost);
-  const seasonPoolContribution = fixedSeasonPoolContribution + dinnerSurplusToSeasonPool;
-  const fundingTotal = buyInTotal + dinnerShortfall;
+  const seasonPoolContribution =
+    fixedSeasonPoolContribution + dinnerSurplusToSeasonPool + rebuyFineTotal;
+  const fundingTotal = buyInTotal + dinnerShortfall + rebuyFineTotal;
   const allocatedTotal = venueFee + nightRewardTotal + dinnerCost + seasonPoolContribution;
 
   return {
+    buyInPerPlayer,
     buyInTotal,
+    rebuyFineTotal,
     venueFee,
     nightRewardTotal,
     dinnerCost,
@@ -228,6 +372,10 @@ function calculateGameFinance(game, rules, isValid) {
   };
 }
 
+function getGameBuyInPerPlayer(game, rules) {
+  return game.buyInPerPlayer ?? rules.money.buyInPerPlayer;
+}
+
 function getGameVenueFee(game, rules) {
   return game.venueFee ?? rules.money.venueFee;
 }
@@ -236,6 +384,7 @@ function calculateSeasonFinanceReport(validGames) {
   const totals = validGames.reduce(
     (report, game) => {
       report.buyInTotal += game.finance.buyInTotal;
+      report.rebuyFineTotal += game.finance.rebuyFineTotal;
       report.venueFee += game.finance.venueFee;
       report.nightRewardTotal += game.finance.nightRewardTotal;
       report.dinnerCost += game.finance.dinnerCost;
@@ -249,6 +398,7 @@ function calculateSeasonFinanceReport(validGames) {
     },
     {
       buyInTotal: 0,
+      rebuyFineTotal: 0,
       venueFee: 0,
       nightRewardTotal: 0,
       dinnerCost: 0,
@@ -283,9 +433,14 @@ function calculateSeasonFinanceReport(validGames) {
   };
 }
 
-function calculateSeasonSummary(rules, players, games) {
+function calculateSeasonSummary(
+  rules,
+  players,
+  games,
+  selectedSeason = rules.season.current
+) {
   const playersById = new Map(players.map((player) => [player.id, player]));
-  const season = rules.season.current;
+  const season = selectedSeason;
   const seasonGames = games
     .map((game, sourceIndex) => ({ game, sourceIndex }))
     .filter(({ game }) => game.season === season)
@@ -304,7 +459,18 @@ function calculateSeasonSummary(rules, players, games) {
   const hasValidGames = validGames.length > 0;
   const topPrizeStandings = hasValidGames ? standings.slice(0, 4) : [];
   const weakPlayerCandidate = calculateWeakPlayerCandidate(standings, rules);
-  const seasonRewards = calculateSeasonRewards(topPrizeStandings, seasonPool, rules, weakPlayerCandidate);
+  const playerProfiles = calculatePlayerProfiles(standings, validGames);
+  const seasonHonors = calculateSeasonHonors(standings, validGames, playerProfiles, rules);
+  const honorPrizeTotal = seasonHonors
+    .filter((honor) => honor.isPrizeHonor)
+    .reduce((total, honor) => total + honor.prize, 0);
+  const seasonRewards = calculateSeasonRewards(
+    topPrizeStandings,
+    seasonPool,
+    rules,
+    weakPlayerCandidate,
+    seasonHonors
+  );
 
   for (const stats of standings) {
     stats.projectedSeasonReward = seasonRewards.get(stats.playerId) ?? 0;
@@ -328,8 +494,6 @@ function calculateSeasonSummary(rules, players, games) {
   const rankMovements = calculateRankMovements(standings, previousStandings, latestGame);
   const latestHighlights = calculateLatestGameHighlights(latestGame, rankMovements);
   const weakDangerZone = calculateWeakDangerZone(standings, rules);
-  const playerProfiles = calculatePlayerProfiles(standings, validGames);
-  const seasonHonors = calculateSeasonHonors(standings, validGames, playerProfiles);
   const latestGameStory = calculateGameStory(latestGame);
   const financeReport = calculateSeasonFinanceReport(validGames);
 
@@ -341,6 +505,7 @@ function calculateSeasonSummary(rules, players, games) {
     standings,
     topPrizeStandings,
     seasonPool,
+    honorPrizeTotal,
     dinner,
     rankMovements,
     latestHighlights,
@@ -373,6 +538,7 @@ function applyGameRowsToPlayerStats(playerStats, game) {
     stats.totalPoints += row.nightPoints;
     stats.attendance += 1;
     stats.totalRebuys += row.rebuys;
+    stats.totalNetChips += row.finalChips;
     stats.totalNightRewards += row.nightReward;
     stats.latestRank = row.rank;
   }
@@ -397,6 +563,7 @@ function initializePlayerStats(players) {
         totalPoints: 0,
         attendance: 0,
         totalRebuys: 0,
+        totalNetChips: 0,
         totalNightRewards: 0,
         projectedSeasonReward: 0,
         latestRank: null
@@ -410,7 +577,7 @@ function compareStandings(a, b) {
     b.totalPoints - a.totalPoints ||
     a.totalRebuys - b.totalRebuys ||
     b.attendance - a.attendance ||
-    a.playerName.localeCompare(b.playerName, "zh-CN")
+    b.totalNetChips - a.totalNetChips
   );
 }
 
@@ -433,13 +600,25 @@ function compareWeakRisk(a, b) {
     a.totalPoints - b.totalPoints ||
     b.attendance - a.attendance ||
     b.totalRebuys - a.totalRebuys ||
-    a.playerName.localeCompare(b.playerName, "zh-CN")
+    a.totalNetChips - b.totalNetChips
   );
 }
 
-function calculateSeasonRewards(topPrizeStandings, seasonPool, rules, weakPlayerCandidate) {
+function calculateSeasonRewards(
+  topPrizeStandings,
+  seasonPool,
+  rules,
+  weakPlayerCandidate,
+  seasonHonors = []
+) {
   const rewards = new Map();
-  const topFourPool = Math.max(0, seasonPool - rules.season.weakPrize);
+  const honorPrizeTotal = seasonHonors
+    .filter((honor) => honor.isPrizeHonor)
+    .reduce((total, honor) => total + honor.prize, 0);
+  const topFourPool = Math.max(
+    0,
+    seasonPool - rules.season.weakPrize - honorPrizeTotal
+  );
 
   topPrizeStandings.forEach((stats, index) => {
     const amount = topFourPool * rules.season.topFourPrizePercentages[index];
@@ -630,7 +809,7 @@ function chooseWorseGame(current, next) {
     : current;
 }
 
-function calculateSeasonHonors(standings, validGames, playerProfiles) {
+function calculateSeasonHonors(standings, validGames, playerProfiles, rules) {
   if (validGames.length === 0) {
     return [];
   }
@@ -638,17 +817,61 @@ function calculateSeasonHonors(standings, validGames, playerProfiles) {
   const allRows = validGames.flatMap((game) =>
     game.rows.map((row) => ({ ...row, gameTitle: game.title, gameDate: game.date }))
   );
-  const bestScore = [...allRows].sort(
-    (a, b) => b.nightPoints - a.nightPoints || a.rank - b.rank
-  )[0];
-  const biggestStack = [...allRows].sort(
-    (a, b) => b.finalChips - a.finalChips || a.rank - b.rank
-  )[0];
+  const honorPrize = rules?.season?.honorPrize ?? 0;
+  const prizeHonors = [];
+  const awardedPlayerIds = new Set();
+  const chipKing = [...standings]
+    .filter((stats) => stats.attendance > 0)
+    .sort(compareSeasonChipKing)[0];
+
+  if (chipKing) {
+    prizeHonors.push(
+      createPrizeHonor(
+        "赛季筹码王",
+        chipKing,
+        formatSignedNumber(chipKing.totalNetChips),
+        `总积分 ${chipKing.totalPoints} · 出勤 ${chipKing.attendance} 次`,
+        honorPrize
+      )
+    );
+    awardedPlayerIds.add(chipKing.playerId);
+  }
+
+  const bestScore = [...allRows]
+    .filter((row) => !awardedPlayerIds.has(row.playerId))
+    .sort(compareSingleGameMvp)[0];
+
+  if (bestScore) {
+    prizeHonors.push(
+      createPrizeHonor(
+        "单局 MVP",
+        bestScore,
+        `${formatSignedNumber(bestScore.nightPoints)} 分`,
+        `${bestScore.gameTitle} · 筹码净值 ${formatSignedNumber(bestScore.finalChips)}`,
+        honorPrize
+      )
+    );
+    awardedPlayerIds.add(bestScore.playerId);
+  }
+
+  const comebackWinner = calculateSingleGameComebacks(standings, validGames)
+    .filter((candidate) => !awardedPlayerIds.has(candidate.playerId))
+    .sort(compareSingleGameComeback)[0];
+
+  if (comebackWinner) {
+    prizeHonors.push(
+      createPrizeHonor(
+        "单局逆袭王",
+        comebackWinner,
+        `↑${comebackWinner.rankChange} 名`,
+        `${comebackWinner.gameTitle} · 第 ${comebackWinner.previousRank} → 第 ${comebackWinner.currentRank}`,
+        honorPrize
+      )
+    );
+  }
+
   const rebuyKing = [...standings].filter((stats) => stats.attendance > 0).sort(
     (a, b) => b.totalRebuys - a.totalRebuys || a.rank - b.rank
-  )[0];
-  const attendanceKing = [...standings].filter((stats) => stats.attendance > 0).sort(
-    (a, b) => b.attendance - a.attendance || a.rank - b.rank
   )[0];
   const prizeCollector = [...standings].filter((stats) => stats.attendance > 0).sort(
     (a, b) => b.totalNightRewards - a.totalNightRewards || a.rank - b.rank
@@ -658,13 +881,93 @@ function calculateSeasonHonors(standings, validGames, playerProfiles) {
   )[0];
 
   return [
-    createHonor("单局最高分", bestScore, `${formatSignedNumber(bestScore.nightPoints)} 分`, `${bestScore.gameTitle} · 第 ${bestScore.rank} 名`),
-    createHonor("最大筹码净值", biggestStack, `${formatSignedNumber(biggestStack.finalChips)}`, `${biggestStack.gameTitle} · 筹码净值`),
+    ...prizeHonors,
     createHonor("复活王", rebuyKing, `${rebuyKing.totalRebuys} 次`, `出勤 ${rebuyKing.attendance} 次`),
-    createHonor("全勤担当", attendanceKing, `${attendanceKing.attendance}/${validGames.length}`, "人可以输，局不能缺"),
     createHonor("奖金收割机", prizeCollector, yuan.format(prizeCollector.totalNightRewards), `领奖 ${playerProfiles.get(prizeCollector.playerId)?.rewardGames ?? 0} 次`),
     createHonor("无复活战神", cleanPlayer, `${cleanPlayer.totalRebuys} 次复活`, `总积分 ${cleanPlayer.totalPoints}`)
   ];
+}
+
+function compareSeasonChipKing(a, b) {
+  return (
+    b.totalNetChips - a.totalNetChips ||
+    b.totalPoints - a.totalPoints ||
+    a.totalRebuys - b.totalRebuys ||
+    b.attendance - a.attendance ||
+    a.rank - b.rank
+  );
+}
+
+function compareSingleGameMvp(a, b) {
+  return (
+    b.nightPoints - a.nightPoints ||
+    b.finalChips - a.finalChips ||
+    a.rebuys - b.rebuys ||
+    a.rank - b.rank
+  );
+}
+
+function calculateSingleGameComebacks(standings, validGames) {
+  const seasonPlayers = standings.map((stats) => ({
+    id: stats.playerId,
+    name: stats.playerName,
+    avatar: stats.avatar
+  }));
+  const candidates = [];
+
+  for (let gameIndex = 1; gameIndex < validGames.length; gameIndex += 1) {
+    const game = validGames[gameIndex];
+    const previousStandings = calculateStandingsForGames(
+      seasonPlayers,
+      validGames.slice(0, gameIndex)
+    );
+    const currentStandings = calculateStandingsForGames(
+      seasonPlayers,
+      validGames.slice(0, gameIndex + 1)
+    );
+    const previousById = new Map(previousStandings.map((stats) => [stats.playerId, stats]));
+    const currentById = new Map(currentStandings.map((stats) => [stats.playerId, stats]));
+
+    for (const row of game.rows) {
+      const previous = previousById.get(row.playerId);
+      const current = currentById.get(row.playerId);
+
+      if (!previous || !current || previous.attendance === 0) continue;
+
+      const rankChange = previous.rank - current.rank;
+
+      if (rankChange <= 0) continue;
+
+      candidates.push({
+        ...row,
+        gameTitle: game.title,
+        gameDate: game.date,
+        previousRank: previous.rank,
+        currentRank: current.rank,
+        rankChange
+      });
+    }
+  }
+
+  return candidates;
+}
+
+function compareSingleGameComeback(a, b) {
+  return (
+    b.rankChange - a.rankChange ||
+    b.nightPoints - a.nightPoints ||
+    b.finalChips - a.finalChips ||
+    a.rebuys - b.rebuys ||
+    a.currentRank - b.currentRank
+  );
+}
+
+function createPrizeHonor(label, playerLike, value, note, prize) {
+  return {
+    ...createHonor(label, playerLike, value, note),
+    isPrizeHonor: true,
+    prize
+  };
 }
 
 function createHonor(label, playerLike, value, note) {
@@ -729,7 +1032,7 @@ function renderSeasonSummary(summary) {
       icon: "icons/calendar-days.svg",
       variant: "season"
     }),
-    summaryCard("已完成局数", `${completedGames}/${gamesPerSeason}`, "只统计至少 6 人的有效牌局", {
+    summaryCard("已完成局数", `${completedGames}/${gamesPerSeason}`, `只统计至少 ${summary.rules.money.minimumPlayers} 人的有效牌局`, {
       icon: "icons/flag.svg",
       variant: "progress",
       progress: seasonProgress,
@@ -800,6 +1103,7 @@ function renderFinanceSummary(report) {
   const container = document.querySelector("#finance-summary");
   const metrics = [
     ["总缴费", report.buyInTotal, `${report.gameCount} 次有效牌局`],
+    ["复活罚款", report.rebuyFineTotal, "全额汇入赛季奖励池"],
     ["场地费", report.venueFee, "每局按实际场地费扣减"],
     ["当晚奖励", report.nightRewardTotal, "每局前三名奖金"],
     ["聚餐实付", report.dinnerCost, "饮品费不计入"],
@@ -872,24 +1176,58 @@ function renderFinanceAllocation(report) {
 
 function renderFinanceStatements(report) {
   const container = document.querySelector("#finance-statements");
-  const games = [...report.games].sort(compareGamesByDateThenInputOrder).reverse();
+  const previousButton = document.querySelector("#finance-previous");
+  const nextButton = document.querySelector("#finance-next");
+  const position = document.querySelector("#finance-position");
+  const games = [...report.games].sort(compareGamesByDateThenInputOrder);
 
   if (games.length === 0) {
     container.innerHTML = '<p class="empty-state">暂无有效牌局账单。</p>';
+    position.textContent = "0 / 0";
+    previousButton.disabled = true;
+    nextButton.disabled = true;
     return;
   }
 
-  container.innerHTML = games
-    .map((game, index) => renderGameFinanceStatement(game, index === 0))
-    .join("");
+  if (selectedFinanceGameIndex === null || selectedFinanceGameIndex >= games.length) {
+    selectedFinanceGameIndex = games.length - 1;
+  }
+
+  selectedFinanceGameIndex = clampGameHistoryIndex(selectedFinanceGameIndex, games);
+
+  const selectedGame = games[selectedFinanceGameIndex];
+  const canGoPrevious = selectedFinanceGameIndex > 0;
+  const canGoNext = selectedFinanceGameIndex < games.length - 1;
+
+  position.textContent = `${selectedFinanceGameIndex + 1} / ${games.length}`;
+  previousButton.disabled = !canGoPrevious;
+  nextButton.disabled = !canGoNext;
+  previousButton.onclick = () => {
+    selectedFinanceGameIndex = clampGameHistoryIndex(selectedFinanceGameIndex - 1, games);
+    renderFinanceStatements(report);
+  };
+  nextButton.onclick = () => {
+    selectedFinanceGameIndex = clampGameHistoryIndex(selectedFinanceGameIndex + 1, games);
+    renderFinanceStatements(report);
+  };
+
+  container.innerHTML = renderGameFinanceStatement(selectedGame, true);
 }
 
 function renderGameFinanceStatement(game, isOpen) {
   const finance = game.finance;
   const balanceLabel = finance.isBalanced ? "账目平衡" : "账目异常";
-  const seasonPoolNote = finance.dinnerSurplusToSeasonPool > 0
-    ? `固定 ${yuan.format(finance.fixedSeasonPoolContribution)} + 聚餐剩余 ${yuan.format(finance.dinnerSurplusToSeasonPool)}`
-    : `固定进入赛季池 ${yuan.format(finance.fixedSeasonPoolContribution)}`;
+  const seasonPoolParts = [`固定 ${yuan.format(finance.fixedSeasonPoolContribution)}`];
+
+  if (finance.dinnerSurplusToSeasonPool > 0) {
+    seasonPoolParts.push(`聚餐剩余 ${yuan.format(finance.dinnerSurplusToSeasonPool)}`);
+  }
+
+  if (finance.rebuyFineTotal > 0) {
+    seasonPoolParts.push(`复活罚款 ${yuan.format(finance.rebuyFineTotal)}`);
+  }
+
+  const seasonPoolNote = seasonPoolParts.join(" + ");
 
   return `
     <details class="finance-statement ${finance.isBalanced ? "balanced" : "unbalanced"}"${isOpen ? " open" : ""}>
@@ -906,7 +1244,8 @@ function renderGameFinanceStatement(game, isOpen) {
       <div class="statement-body">
         <div class="statement-column income">
           <h4>资金来源</h4>
-          ${financeRow("参赛缴费", finance.buyInTotal)}
+          ${financeRow("参赛缴费", finance.buyInTotal, false, `${yuan.format(finance.buyInPerPlayer)} × ${game.participantCount} 人`)}
+          ${financeRow("复活罚款", finance.rebuyFineTotal, false, "全额进入赛季池")}
           ${financeRow("AA 补足", finance.dinnerShortfall)}
           ${financeRow("来源合计", finance.fundingTotal, true)}
         </div>
@@ -1083,8 +1422,11 @@ function renderHonorWall(summary) {
   container.innerHTML = summary.seasonHonors
     .map(
       (honor) => `
-        <article class="honor-card">
-          <span class="meta-label">${honor.label}</span>
+        <article class="honor-card${honor.isPrizeHonor ? " prize-honor" : ""}">
+          <div class="honor-card-heading">
+            <span class="meta-label">${honor.label}</span>
+            ${honor.isPrizeHonor ? `<span class="honor-prize">${yuan.format(honor.prize)}</span>` : ""}
+          </div>
           ${playerLine(honor.player)}
           <strong>${honor.value}</strong>
           <p>${honor.note}</p>
@@ -1152,6 +1494,7 @@ function renderStandings(summary) {
           <td><strong>${stats.totalPoints}</strong></td>
           <td>${stats.attendance}</td>
           <td>${stats.totalRebuys}</td>
+          <td>${formatSignedNumber(stats.totalNetChips)}</td>
           <td>${yuan.format(stats.totalNightRewards)}</td>
           <td><span class="money">${yuan.format(stats.projectedSeasonReward)}</span></td>
         </tr>
@@ -1210,6 +1553,7 @@ function renderLatestGame(summary) {
           <td>${playerLine(row)}</td>
           <td>${row.finalChips}</td>
           <td>${row.rebuys}</td>
+          <td>${yuan.format(row.rebuyFine)}</td>
           <td>${row.basePoints}</td>
           <td>${row.chipBonusPoints}</td>
           <td>${row.rebuyPenaltyPoints}</td>
@@ -1286,12 +1630,16 @@ function formatSignedNumber(value) {
 
 function renderRules(rules) {
   const container = document.querySelector("#rules-list");
+  const blindLevels = rules.blinds?.levels ?? [];
+  const blindSchedule = blindLevels
+    .map((level, index) => `第 ${index + 1} 小时 ${level.smallBlind}/${level.bigBlind}`)
+    .join(" → ");
 
   container.innerHTML = `
     <article class="rule-card">
       <h3>牌局资金</h3>
       <ul>
-        <li>每人每次缴纳 ${yuan.format(rules.money.buyInPerPlayer)}，至少 ${rules.money.minimumPlayers} 人有效。</li>
+        <li>默认每人缴纳 ${yuan.format(rules.money.buyInPerPlayer)}，单局可用 buyInPerPlayer 覆盖；至少 ${rules.money.minimumPlayers} 人有效。</li>
         <li>默认场地费 ${yuan.format(rules.money.venueFee)}，可在每局记录中覆盖；当晚奖励 ${yuan.format(rules.money.nightRewardTotal)}。</li>
         <li>每局固定 ${yuan.format(rules.money.seasonPoolPerGame)} 进入赛季奖励池。</li>
       </ul>
@@ -1310,6 +1658,15 @@ function renderRules(rules) {
         <li>基础分：${rules.points.rankBasePoints.join(" / ")}，第 8 名及以后 ${rules.points.rankBasePointAfterSeventh} 分。</li>
         <li>筹码净值为正时，每满 ${rules.chips.chipBonusStep} 加 1 分，最高 ${rules.chips.maxChipBonus} 分。</li>
         <li>复活扣分依次为 ${rules.chips.rebuyPenalties.join(" / ")}，第 4 次起每次 ${rules.chips.rebuyPenaltyAfterThird}。</li>
+        <li>玩家可填写 rebuyFine 复活罚款总额；仅有效牌局计入，并全额汇入赛季池。</li>
+      </ul>
+    </article>
+    <article class="rule-card">
+      <h3>盲注</h3>
+      <ul>
+        <li>每个盲注级别持续 ${rules.blinds.levelDurationHours} 小时。</li>
+        <li>${blindSchedule}，最后一级持续到牌局结束。</li>
+        <li>升盲时当前手继续使用旧盲注，下一手开始使用新盲注；复活仍为 ${rules.chips.rebuyChips} 筹码。</li>
       </ul>
     </article>
     <article class="rule-card">
@@ -1317,7 +1674,11 @@ function renderRules(rules) {
       <ul>
         <li>每 ${rules.season.gamesPerSeason} 次有效牌局结算一个赛季。</li>
         <li>先拿出 ${yuan.format(rules.season.weakPrize)} 作为弱鸡鼓励奖。</li>
+        <li>赛季筹码王、单局 MVP、单局逆袭王各奖励 ${yuan.format(rules.season.honorPrize)}，同一玩家不可重复领取。</li>
+        <li>单局逆袭从第 2 局开始按赛前、赛后总榜名次计算；首次登场不参与。</li>
+        <li>实际发出的荣誉奖金从 TOP 4 可分配奖池中扣除，空缺奖金退回 TOP 4 奖池。</li>
         <li>剩余按 ${rules.season.topFourPrizePercentages.map((value) => `${value * 100}%`).join(" / ")} 分给前四。</li>
+        <li>同分时依次比较：累计复活更少、出勤更多、赛季累计筹码净值更高。</li>
       </ul>
     </article>
   `;
@@ -1332,7 +1693,7 @@ function playerLine(playerLike) {
   `;
 }
 
-function setupPlayerProfileInteractions(summary) {
+function setupPlayerProfileInteractions() {
   const shell = document.querySelector("#player-profile");
   const content = document.querySelector("#profile-content");
 
@@ -1348,7 +1709,7 @@ function setupPlayerProfileInteractions(summary) {
 
     if (!trigger) return;
 
-    const profile = summary.playerProfiles.get(trigger.dataset.playerId);
+    const profile = activeSeasonSummary?.playerProfiles.get(trigger.dataset.playerId);
 
     if (!profile) return;
 
@@ -1388,6 +1749,7 @@ function renderPlayerProfile(profile) {
     <div class="profile-stats">
       <div><span>出勤</span><strong>${profile.attendance}</strong></div>
       <div><span>累计复活</span><strong>${profile.totalRebuys}</strong></div>
+      <div><span>累计筹码净值</span><strong>${formatSignedNumber(profile.totalNetChips)}</strong></div>
       <div><span>平均积分</span><strong>${formatDecimal(profile.averagePoints)}</strong></div>
       <div><span>领奖次数</span><strong>${profile.rewardGames}</strong></div>
     </div>

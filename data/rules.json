@@ -1,14 +1,15 @@
 {
   "season": {
-    "current": "2026-S1",
+    "current": "2026-S2",
     "gamesPerSeason": 4,
     "weakPrize": 20,
+    "honorPrize": 20,
     "topFourPrizePercentages": [0.5, 0.25, 0.15, 0.1],
     "weakPrizeMinimumAttendance": 3
   },
   "money": {
     "buyInPerPlayer": 150,
-    "minimumPlayers": 6,
+    "minimumPlayers": 5,
     "venueFee": 80,
     "nightRewardTotal": 300,
     "nightRewardPrizes": [170, 80, 50],
@@ -21,6 +22,15 @@
     "maxChipBonus": 8,
     "rebuyPenalties": [-2, -3, -4],
     "rebuyPenaltyAfterThird": -5
+  },
+  "blinds": {
+    "levelDurationHours": 1,
+    "changeAppliesNextHand": true,
+    "levels": [
+      { "smallBlind": 5, "bigBlind": 10 },
+      { "smallBlind": 10, "bigBlind": 20 },
+      { "smallBlind": 20, "bigBlind": 40 }
+    ]
   },
   "points": {
     "rankBasePoints": [12, 10, 8, 6, 4, 3, 2],

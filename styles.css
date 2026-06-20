@@ -122,6 +122,44 @@ body::before {
   min-width: 0;
 }
 
+.header-side {
+  display: grid;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+
+.season-picker {
+  display: grid;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.season-picker > span {
+  color: var(--color-muted);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: 900;
+}
+
+.season-picker select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: var(--space-sm);
+  border: var(--rule-thick) solid var(--color-ink);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-strong);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 900;
+  box-shadow: var(--shadow-soft);
+}
+
+.season-picker select:focus-visible {
+  outline: var(--rule-thick) solid var(--color-focus);
+  outline-offset: var(--space-2xs);
+}
+
 .site-kicker {
   width: fit-content;
   margin: 0 0 var(--space-sm);
@@ -699,6 +737,14 @@ h1 {
   font-weight: 700;
 }
 
+.finance-statements-heading .battle-position {
+  color: var(--color-rule-soft);
+}
+
+.finance-controls {
+  flex: 0 0 auto;
+}
+
 .finance-statements {
   display: grid;
 }
@@ -1076,12 +1122,32 @@ h1 {
     var(--color-surface);
 }
 
-.honor-card:nth-child(1),
-.honor-card:nth-child(2) {
-  grid-column: span 3;
+.honor-card.prize-honor {
   background:
     linear-gradient(135deg, var(--color-gold-soft), var(--color-surface)),
     var(--color-surface);
+}
+
+.honor-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.honor-prize {
+  flex: 0 0 auto;
+  padding: var(--space-2xs) var(--space-xs);
+  border: var(--rule-thin) solid var(--color-ink);
+  border-radius: var(--radius-sm);
+  background: var(--color-gold);
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 2px 2px 0 var(--color-ink);
 }
 
 .honor-card strong {
@@ -1643,6 +1709,10 @@ tbody tr:last-child td {
     grid-template-columns: 1fr;
   }
 
+  .header-side {
+    width: min(100%, 22rem);
+  }
+
   .section-heading {
     grid-template-columns: 1fr;
     align-items: start;
@@ -1763,6 +1833,11 @@ tbody tr:last-child td {
   .finance-statements-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .finance-controls {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .finance-statement summary {
