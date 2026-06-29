@@ -143,10 +143,11 @@ async function assertJsonResponse(response) {
 
 function calculateGameResult(game, playersById, rules) {
   const isValid = game.participants.length >= rules.money.minimumPlayers;
-  const sortedParticipants = [...game.participants].sort((a, b) => b.finalChips - a.finalChips);
-  const nightRewards = calculateNightRewards(sortedParticipants, rules);
+  const chipRankedParticipants = [...game.participants].sort(compareParticipantsByChips);
+  const nightRankedParticipants = calculateNightRanking(chipRankedParticipants);
+  const nightRewards = calculateNightRewards(nightRankedParticipants, rules);
 
-  const rows = sortedParticipants.map((entry, index) => {
+  const rows = nightRankedParticipants.map((entry, index) => {
     const rank = index + 1;
     const player = playersById.get(entry.playerId);
     const basePoints = calculateBasePoints(rank, entry.leftEarly, rules);
@@ -186,6 +187,26 @@ function calculateGameResult(game, playersById, rules) {
     rows,
     finance
   };
+}
+
+function compareParticipantsByChips(a, b) {
+  return b.finalChips - a.finalChips;
+}
+
+function calculateNightRanking(chipRankedParticipants) {
+  const firstPrizeWinnerIndex = chipRankedParticipants.findIndex(
+    (entry) => entry.rebuys === 0
+  );
+
+  if (firstPrizeWinnerIndex <= 0) {
+    return [...chipRankedParticipants];
+  }
+
+  const firstPrizeWinner = chipRankedParticipants[firstPrizeWinnerIndex];
+  return [
+    firstPrizeWinner,
+    ...chipRankedParticipants.filter((_, index) => index !== firstPrizeWinnerIndex)
+  ];
 }
 
 function getGameDateValue(game) {
@@ -266,10 +287,10 @@ function clampGameHistoryIndex(index, games) {
   return Math.max(0, Math.min(index, games.length - 1));
 }
 
-function calculateNightRewards(sortedParticipants, rules) {
+function calculateNightRewards(nightRankedParticipants, rules) {
   const rewards = new Map();
   const prizeAmounts = rules.money.nightRewardPrizes;
-  const firstPrizeWinner = sortedParticipants.find((entry) => entry.rebuys === 0);
+  const firstPrizeWinner = nightRankedParticipants.find((entry) => entry.rebuys === 0);
   const awardedPlayerIds = new Set();
 
   if (firstPrizeWinner) {
@@ -277,7 +298,7 @@ function calculateNightRewards(sortedParticipants, rules) {
     awardedPlayerIds.add(firstPrizeWinner.playerId);
   }
 
-  sortedParticipants
+  nightRankedParticipants
     .filter((entry) => !awardedPlayerIds.has(entry.playerId))
     .slice(0, prizeAmounts.length - 1)
     .forEach((entry, index) => {
@@ -984,7 +1005,9 @@ function calculateGameStory(game) {
     return null;
   }
 
-  const chipLeader = game.rows[0] ?? null;
+  const chipLeader = [...game.rows].sort(
+    (a, b) => b.finalChips - a.finalChips || a.rank - b.rank
+  )[0] ?? null;
   const topScorer = [...game.rows].sort(
     (a, b) => b.nightPoints - a.nightPoints || a.rank - b.rank
   )[0] ?? null;
@@ -1649,13 +1672,14 @@ function renderRules(rules) {
       <ul>
         <li>奖金为 ${rules.money.nightRewardPrizes.map((amount) => yuan.format(amount)).join(" / ")}。</li>
         <li>复活过的玩家不能领取当晚第一名奖励。</li>
-        <li>第一名奖励顺延给筹码排名最高的未复活玩家。</li>
+        <li>第一名奖励和第一名基础分顺延给筹码排名最高的未复活玩家。</li>
       </ul>
     </article>
     <article class="rule-card">
       <h3>积分</h3>
       <ul>
         <li>基础分：${rules.points.rankBasePoints.join(" / ")}，第 8 名及以后 ${rules.points.rankBasePointAfterSeventh} 分。</li>
+        <li>如果筹码第一复活过，排名基础分按顺延后的当晚名次计算。</li>
         <li>筹码净值为正时，每满 ${rules.chips.chipBonusStep} 加 1 分，最高 ${rules.chips.maxChipBonus} 分。</li>
         <li>复活扣分依次为 ${rules.chips.rebuyPenalties.join(" / ")}，第 4 次起每次 ${rules.chips.rebuyPenaltyAfterThird}。</li>
         <li>玩家可填写 rebuyFine 复活罚款总额；仅有效牌局计入，并全额汇入赛季池。</li>

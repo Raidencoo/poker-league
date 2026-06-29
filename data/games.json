@@ -89,7 +89,7 @@
     "id": "game-006",
     "season": "2026-S2",
     "date": "2026-06-19 20:00",
-    "title": "第5局",
+    "title": "第6局",
     "dinnerCost": 0,
     "buyInPerPlayer": 100,
     "venueFee": 100,
@@ -99,6 +99,24 @@
       { "playerId": "rui", "finalChips": 1800, "rebuys": 0 },
       { "playerId": "anafkh", "finalChips": -535, "rebuys": 1 },
       { "playerId": "ming", "finalChips": 2480, "rebuys": 0,"rebuyFine": 10 }
+    ]
+  },
+  {
+    "id": "game-007",
+    "season": "2026-S2",
+    "date": "2026-06-18 13:00",
+    "title": "第7局",
+    "dinnerCost": 570,
+    "buyInPerPlayer": 150,
+    "venueFee": 80,
+    "participants": [
+      { "playerId": "qiang", "finalChips": -980, "rebuys": 2,  "rebuyFine": 30},
+      { "playerId": "kai", "finalChips": -1040, "rebuys": 2 ,"rebuyFine": 30},
+      { "playerId": "rui", "finalChips": -1740, "rebuys": 2 },
+      { "playerId": "anafkh", "finalChips": -535, "rebuys": 0 },
+      { "playerId": "raiden", "finalChips": -1475, "rebuys": 1 ,"rebuyFine": 10},
+      { "playerId": "gou", "finalChips": 4475, "rebuys": 1 ,"rebuyFine": 10},
+      { "playerId": "ming", "finalChips": -660, "rebuys": 0 }
     ]
   }
 ]

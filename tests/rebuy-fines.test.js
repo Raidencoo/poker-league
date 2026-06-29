@@ -68,13 +68,14 @@ test("valid-game rebuy fines go directly into the season pool without changing p
   const finedResult = calculate(api, rules, players, createGame(players));
   const noFineResult = calculate(api, rules, players, createGame(players, 5, false));
 
-  assert.deepEqual(
-    Array.from(finedResult.rows, (row) => row.rebuyFine),
-    [80, 20, 0, 0, 0]
-  );
-  assert.deepEqual(
-    Array.from(finedResult.rows, (row) => row.nightPoints),
-    Array.from(noFineResult.rows, (row) => row.nightPoints)
+  const finedRowsById = new Map(finedResult.rows.map((row) => [row.playerId, row]));
+
+  assert.equal(finedRowsById.get(players[0].id).rebuyFine, 80);
+  assert.equal(finedRowsById.get(players[1].id).rebuyFine, 20);
+  assert.equal(finedRowsById.get(players[2].id).rebuyFine, 0);
+  assert.equal(
+    Array.from(finedResult.rows, (row) => row.nightPoints).join(","),
+    Array.from(noFineResult.rows, (row) => row.nightPoints).join(",")
   );
   assert.equal(finedResult.finance.rebuyFineTotal, 100);
   assert.equal(finedResult.finance.buyInTotal, 500);
