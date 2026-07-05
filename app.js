@@ -489,7 +489,6 @@ function calculateSeasonSummary(
     topPrizeStandings,
     seasonPool,
     rules,
-    weakPlayerCandidate,
     seasonHonors
   );
 
@@ -629,26 +628,23 @@ function calculateSeasonRewards(
   topPrizeStandings,
   seasonPool,
   rules,
-  weakPlayerCandidate,
   seasonHonors = []
 ) {
   const rewards = new Map();
   const honorPrizeTotal = seasonHonors
     .filter((honor) => honor.isPrizeHonor)
     .reduce((total, honor) => total + honor.prize, 0);
-  const topFourPool = Math.max(
-    0,
-    seasonPool - rules.season.weakPrize - honorPrizeTotal
-  );
+  const topFourPool = Math.max(0, seasonPool - honorPrizeTotal);
+  let allocatedTopFourPrize = 0;
 
   topPrizeStandings.forEach((stats, index) => {
-    const amount = topFourPool * rules.season.topFourPrizePercentages[index];
-    rewards.set(stats.playerId, Math.round(amount));
+    const isLastPrize = index === topPrizeStandings.length - 1;
+    const amount = isLastPrize
+      ? topFourPool - allocatedTopFourPrize
+      : Math.round(topFourPool * rules.season.topFourPrizePercentages[index]);
+    rewards.set(stats.playerId, amount);
+    allocatedTopFourPrize += amount;
   });
-
-  if (weakPlayerCandidate) {
-    rewards.set(weakPlayerCandidate.playerId, rules.season.weakPrize);
-  }
 
   return rewards;
 }
@@ -757,8 +753,7 @@ function calculateWeakDangerZone(standings, rules) {
     watchList: eligible.slice(0, 3),
     closestPending,
     minimumAttendance,
-    escapePointsNeeded,
-    prize: rules.season.weakPrize
+    escapePointsNeeded
   };
 }
 
@@ -892,6 +887,31 @@ function calculateSeasonHonors(standings, validGames, playerProfiles, rules) {
         honorPrize
       )
     );
+    awardedPlayerIds.add(comebackWinner.playerId);
+  }
+
+  const cleanPlayer = [...playerProfiles.values()]
+    .filter(
+      (profile) =>
+        profile.attendance > 0 && !awardedPlayerIds.has(profile.playerId)
+    )
+    .sort(
+      (a, b) =>
+        a.totalRebuys - b.totalRebuys ||
+        b.totalPoints - a.totalPoints ||
+        a.rank - b.rank
+    )[0];
+
+  if (cleanPlayer) {
+    prizeHonors.push(
+      createPrizeHonor(
+        "无复活战神",
+        cleanPlayer,
+        `${cleanPlayer.totalRebuys} 次复活`,
+        `总积分 ${cleanPlayer.totalPoints} · 出勤 ${cleanPlayer.attendance} 次`,
+        honorPrize
+      )
+    );
   }
 
   const rebuyKing = [...standings].filter((stats) => stats.attendance > 0).sort(
@@ -900,15 +920,10 @@ function calculateSeasonHonors(standings, validGames, playerProfiles, rules) {
   const prizeCollector = [...standings].filter((stats) => stats.attendance > 0).sort(
     (a, b) => b.totalNightRewards - a.totalNightRewards || a.rank - b.rank
   )[0];
-  const cleanPlayer = [...playerProfiles.values()].filter((profile) => profile.attendance > 0).sort(
-    (a, b) => a.totalRebuys - b.totalRebuys || b.totalPoints - a.totalPoints || a.rank - b.rank
-  )[0];
-
   return [
     ...prizeHonors,
     createHonor("复活王", rebuyKing, `${rebuyKing.totalRebuys} 次`, `出勤 ${rebuyKing.attendance} 次`),
-    createHonor("奖金收割机", prizeCollector, yuan.format(prizeCollector.totalNightRewards), `领奖 ${playerProfiles.get(prizeCollector.playerId)?.rewardGames ?? 0} 次`),
-    createHonor("无复活战神", cleanPlayer, `${cleanPlayer.totalRebuys} 次复活`, `总积分 ${cleanPlayer.totalPoints}`)
+    createHonor("奖金收割机", prizeCollector, yuan.format(prizeCollector.totalNightRewards), `领奖 ${playerProfiles.get(prizeCollector.playerId)?.rewardGames ?? 0} 次`)
   ];
 }
 
@@ -1079,7 +1094,7 @@ function renderSeasonSummary(summary) {
       icon: "icons/crown.svg",
       variant: "leader"
     }),
-    summaryCard("弱鸡奖候选", weak ? weak.playerName : "暂无", weak ? `${weak.totalPoints} 分 · 出勤 ${weak.attendance}` : "需满足出勤和排名条件", {
+    summaryCard("弱鸡候选", weak ? weak.playerName : "暂无", weak ? `${weak.totalPoints} 分 · 出勤 ${weak.attendance}` : "需满足出勤和排名条件", {
       icon: "icons/triangle-alert.svg",
       variant: "risk"
     })
@@ -1385,7 +1400,7 @@ function renderWeakDangerZone(summary) {
       <span class="meta-label">当前危险人物</span>
       ${playerLine(candidate)}
       <strong>${candidate.totalPoints} 分</strong>
-      <p>${escapeText} · 奖金 ${yuan.format(danger.prize)}</p>
+      <p>${escapeText}</p>
     </div>
     <div class="danger-metrics">
       <div><span>出勤</span><strong>${candidate.attendance}/${danger.minimumAttendance}</strong></div>
@@ -1703,8 +1718,7 @@ function renderRules(rules) {
       <h3>赛季</h3>
       <ul>
         <li>每 ${rules.season.gamesPerSeason} 次有效牌局结算一个赛季。</li>
-        <li>先拿出 ${yuan.format(rules.season.weakPrize)} 作为弱鸡鼓励奖。</li>
-        <li>赛季筹码王、单局 MVP、单局逆袭王各奖励 ${yuan.format(rules.season.honorPrize)}，同一玩家不可重复领取。</li>
+        <li>赛季筹码王、单局 MVP、单局逆袭王、无复活战神各奖励 ${yuan.format(rules.season.honorPrize)}，同一玩家不可重复领取。</li>
         <li>单局逆袭从第 2 局开始按赛前、赛后总榜名次计算；首次登场不参与。</li>
         <li>实际发出的荣誉奖金从 TOP 4 可分配奖池中扣除，空缺奖金退回 TOP 4 奖池。</li>
         <li>剩余按 ${rules.season.topFourPrizePercentages.map((value) => `${value * 100}%`).join(" / ")} 分给前四。</li>
