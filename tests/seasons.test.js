@@ -88,8 +88,8 @@ test("season summary can calculate historical and current seasons independently"
   assert.equal(seasonOne.validGames.length, 4);
   assert.equal(seasonOne.validGames.at(-1).id, "game-004");
   assert.equal(seasonTwo.season, "2026-S2");
-  assert.equal(seasonTwo.validGames.length, 3);
-  assert.equal(seasonTwo.validGames.at(-1).id, "game-006");
+  assert.equal(seasonTwo.validGames.length, 4);
+  assert.equal(seasonTwo.validGames.at(-1).id, "game-008");
 });
 
 test("season selector labels current and archived seasons", () => {
@@ -129,7 +129,7 @@ test("switching seasons rerenders the complete dashboard on each season's latest
   selector.value = "2026-S2";
   selector.onchange();
   assert.equal(elements.get("#overview-title").textContent, "当前赛季总览");
-  assert.match(elements.get("#latest-game-meta").textContent, /2026-06-19 20:00/);
-  assert.equal(elements.get("#latest-game-position").textContent, "3 / 3");
-  assert.equal(elements.get("#finance-position").textContent, "3 / 3");
+  assert.match(elements.get("#latest-game-meta").textContent, /2026-07-04 18:00/);
+  assert.equal(elements.get("#latest-game-position").textContent, "4 / 4");
+  assert.equal(elements.get("#finance-position").textContent, "4 / 4");
 });

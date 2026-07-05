@@ -118,5 +118,23 @@
       { "playerId": "gou", "finalChips": 4475, "rebuys": 1 ,"rebuyFine": 10},
       { "playerId": "ming", "finalChips": -660, "rebuys": 0 }
     ]
+  },
+  {
+    "id": "game-008",
+    "season": "2026-S2",
+    "date": "2026-07-04 18:00",
+    "title": "第8局",
+    "dinnerCost": 331,
+    "buyInPerPlayer": 150,
+    "venueFee": 0,
+    "participants": [
+      { "playerId": "qiang", "finalChips": -3580, "rebuys": 6,  "rebuyFine": 150},
+      { "playerId": "kai", "finalChips": -400, "rebuys": 3 ,"rebuyFine": 60},
+      { "playerId": "rui", "finalChips": 2750, "rebuys": 0 },
+      { "playerId": "anafkh", "finalChips": 1100, "rebuys": 0 },
+      { "playerId": "raiden", "finalChips": 1945, "rebuys": 0 },
+      { "playerId": "gou", "finalChips": -3000, "rebuys": 4 ,"rebuyFine": 90},
+      { "playerId": "ming", "finalChips": 1300, "rebuys": 0 }
+    ]
   }
 ]

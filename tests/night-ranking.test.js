@@ -40,7 +40,7 @@ test("rebuying chip leader is ranked after the highest non-rebuy player for base
 
   assert.equal(
     result.rows.slice(0, 3).map((row) => row.playerId).join(","),
-    "anafkh,gou,ming"
+    "anafkh,gou,kai"
   );
 
   assert.equal(rowsById.get("anafkh").rank, 1);

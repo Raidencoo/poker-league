@@ -841,8 +841,11 @@ function calculateSeasonHonors(standings, validGames, playerProfiles, rules) {
   const honorPrize = rules?.season?.honorPrize ?? 0;
   const prizeHonors = [];
   const awardedPlayerIds = new Set();
-  const chipKing = [...standings]
-    .filter((stats) => stats.attendance > 0)
+  const standingsByPlayerId = new Map(
+    standings.map((stats) => [stats.playerId, stats])
+  );
+  const chipKing = allRows
+    .map((row) => ({ ...row, seasonStats: standingsByPlayerId.get(row.playerId) }))
     .sort(compareSeasonChipKing)[0];
 
   if (chipKing) {
@@ -850,8 +853,8 @@ function calculateSeasonHonors(standings, validGames, playerProfiles, rules) {
       createPrizeHonor(
         "赛季筹码王",
         chipKing,
-        formatSignedNumber(chipKing.totalNetChips),
-        `总积分 ${chipKing.totalPoints} · 出勤 ${chipKing.attendance} 次`,
+        formatSignedNumber(chipKing.finalChips),
+        `${chipKing.gameTitle} · 单局最高筹码净值`,
         honorPrize
       )
     );
@@ -910,12 +913,15 @@ function calculateSeasonHonors(standings, validGames, playerProfiles, rules) {
 }
 
 function compareSeasonChipKing(a, b) {
+  const aStats = a.seasonStats;
+  const bStats = b.seasonStats;
+
   return (
-    b.totalNetChips - a.totalNetChips ||
-    b.totalPoints - a.totalPoints ||
-    a.totalRebuys - b.totalRebuys ||
-    b.attendance - a.attendance ||
-    a.rank - b.rank
+    b.finalChips - a.finalChips ||
+    bStats.totalPoints - aStats.totalPoints ||
+    aStats.totalRebuys - bStats.totalRebuys ||
+    bStats.attendance - aStats.attendance ||
+    aStats.rank - bStats.rank
   );
 }
 

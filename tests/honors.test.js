@@ -101,6 +101,32 @@ test("official prize honors select three different players", () => {
   assert.ok(prizeHonors.every((honor) => honor.prize === 20));
 });
 
+test("season chip king uses the highest single-game chip result", () => {
+  const { api } = loadApp();
+  const games = [
+    game("game-1", [
+      row("a", 10, 3000, 0, 1),
+      row("b", 8, 2000, 0, 2),
+      row("c", 6, 0, 0, 3),
+      row("d", 4, -500, 0, 4)
+    ]),
+    game("game-2", [
+      row("b", 12, 1800, 0, 1),
+      row("c", 8, 500, 0, 2),
+      row("d", 6, 0, 0, 3),
+      row("a", 0, -2500, 1, 4)
+    ])
+  ];
+
+  const chipKing = calculateHonors(api, games).find(
+    (honor) => honor.label === "赛季筹码王"
+  );
+
+  assert.equal(chipKing.player.playerId, "a");
+  assert.match(chipKing.value, /3,?000/);
+  assert.match(chipKing.note, /game-1/);
+});
+
 test("the first game cannot award a comeback honor", () => {
   const { api } = loadApp();
   const games = [
