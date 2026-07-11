@@ -20,10 +20,11 @@ document.addEventListener("DOMContentLoaded", init);
 async function init() {
   try {
     const data = await loadData();
-    const seasons = getAvailableSeasons(data.games, data.rules.season.current);
+    const seasons = getAvailableSeasons(data.games, data.rules);
+    const currentSeason = getCurrentSeasonId(seasons, data.rules);
     selectedSeason = resolveSelectedSeason(
       seasons,
-      data.rules.season.current,
+      currentSeason,
       getRequestedSeasonFromUrl()
     );
 
@@ -91,11 +92,12 @@ function renderSeasonSelector(seasons, activeSeason) {
 
 function setupSeasonSelectorInteractions(data, seasons) {
   const selector = document.querySelector("#season-select");
+  const currentSeason = getCurrentSeasonId(seasons, data.rules);
 
   selector.onchange = () => {
     selectedSeason = resolveSelectedSeason(
       seasons,
-      data.rules.season.current,
+      currentSeason,
       selector.value
     );
     selectedGameHistoryIndex = null;
@@ -113,7 +115,7 @@ function setupSeasonSelectorInteractions(data, seasons) {
 }
 
 function renderSeasonContext(summary) {
-  const isCurrentSeason = summary.season === summary.rules.season.current;
+  const isCurrentSeason = summary.season === summary.currentSeason;
   document.querySelector("#overview-title").textContent = isCurrentSeason
     ? "当前赛季总览"
     : `${summary.season} 赛季总览`;
@@ -209,52 +211,64 @@ function calculateNightRanking(chipRankedParticipants) {
   ];
 }
 
-function getGameDateValue(game) {
-  const match = String(game.date).match(
-    /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/
-  );
-
-  if (!match) {
-    return 0;
-  }
-
-  const [, year, month, day, hour = 0, minute = 0, second = 0] = match.map((value) =>
-    Number(value ?? 0)
-  );
-  return Date.UTC(year, month - 1, day, hour, minute, second);
+function compareGamesByInputOrder(a, b) {
+  return (a.sourceIndex ?? 0) - (b.sourceIndex ?? 0);
 }
 
-function compareGamesByDateThenInputOrder(a, b) {
-  return (
-    getGameDateValue(a) - getGameDateValue(b) ||
-    (a.sourceIndex ?? 0) - (b.sourceIndex ?? 0)
-  );
-}
+function getAvailableSeasons(games, rules) {
+  const assignments = createSeasonAssignments(games, rules);
+  const seasonsById = new Map();
+  const latestValidAssignment = [...assignments]
+    .filter((assignment) => assignment.isValidForSeasonCount)
+    .at(-1);
+  const currentSeason = latestValidAssignment?.season ?? getFallbackSeasonId(games, rules);
 
-function getAvailableSeasons(games, currentSeason) {
-  const latestDateBySeason = new Map();
+  for (const assignment of assignments) {
+    const existing = seasonsById.get(assignment.season) ?? {
+      id: assignment.season,
+      seasonIndex: assignment.seasonIndex,
+      latestSourceIndex: -1,
+      validGameCount: 0
+    };
 
-  for (const game of games) {
-    const latestDate = latestDateBySeason.get(game.season) ?? 0;
-    latestDateBySeason.set(game.season, Math.max(latestDate, getGameDateValue(game)));
+    existing.latestSourceIndex = Math.max(existing.latestSourceIndex, assignment.sourceIndex);
+
+    if (assignment.isValidForSeasonCount) {
+      existing.validGameCount += 1;
+    }
+
+    seasonsById.set(assignment.season, existing);
   }
 
-  if (currentSeason && !latestDateBySeason.has(currentSeason)) {
-    latestDateBySeason.set(currentSeason, 0);
+  if (!seasonsById.has(currentSeason)) {
+    seasonsById.set(currentSeason, {
+      id: currentSeason,
+      seasonIndex: 0,
+      latestSourceIndex: -1,
+      validGameCount: 0
+    });
   }
 
-  return [...latestDateBySeason]
-    .map(([id, latestGameDate]) => ({
-      id,
-      isCurrent: id === currentSeason,
-      latestGameDate
+  return [...seasonsById.values()]
+    .map((season) => ({
+      ...season,
+      isCurrent: season.id === currentSeason
     }))
     .sort(
       (a, b) =>
         Number(b.isCurrent) - Number(a.isCurrent) ||
-        b.latestGameDate - a.latestGameDate ||
+        b.seasonIndex - a.seasonIndex ||
+        b.latestSourceIndex - a.latestSourceIndex ||
         b.id.localeCompare(a.id, "zh-CN")
     );
+}
+
+function getCurrentSeasonId(seasons, rules) {
+  return (
+    seasons.find((season) => season.isCurrent)?.id ??
+    seasons[0]?.id ??
+    getFallbackSeasonId([], rules)
+  );
 }
 
 function resolveSelectedSeason(seasons, currentSeason, requestedSeason) {
@@ -272,11 +286,11 @@ function resolveSelectedSeason(seasons, currentSeason, requestedSeason) {
 }
 
 function getLatestGame(games) {
-  return [...games].sort(compareGamesByDateThenInputOrder).at(-1) ?? null;
+  return [...games].sort(compareGamesByInputOrder).at(-1) ?? null;
 }
 
 function getGameHistory(games) {
-  return [...games].sort(compareGamesByDateThenInputOrder);
+  return [...games].sort(compareGamesByInputOrder);
 }
 
 function clampGameHistoryIndex(index, games) {
@@ -454,22 +468,92 @@ function calculateSeasonFinanceReport(validGames) {
   };
 }
 
+function createSeasonAssignments(games, rules) {
+  const gamesPerSeason = Math.max(1, rules.season.gamesPerSeason);
+  const formatSeasonId = createSeasonIdFormatter(games, rules);
+  let validGameCount = 0;
+
+  return games.map((game, sourceIndex) => {
+    const isValidForSeasonCount = isGameValidForSeasonCount(game, rules);
+    const seasonIndex = isValidForSeasonCount
+      ? Math.floor(validGameCount / gamesPerSeason)
+      : Math.floor(Math.max(validGameCount - 1, 0) / gamesPerSeason);
+    const seasonGameNumber = isValidForSeasonCount
+      ? (validGameCount % gamesPerSeason) + 1
+      : null;
+    const globalValidGameNumber = isValidForSeasonCount ? validGameCount + 1 : null;
+    const season = formatSeasonId(seasonIndex);
+
+    if (isValidForSeasonCount) {
+      validGameCount += 1;
+    }
+
+    return {
+      game,
+      sourceIndex,
+      season,
+      seasonIndex,
+      seasonGameNumber,
+      globalValidGameNumber,
+      isValidForSeasonCount
+    };
+  });
+}
+
+function createSeasonIdFormatter(games, rules) {
+  const explicitSeason = games.find((game) => game.season)?.season;
+  const seed = parseSeasonId(explicitSeason ?? rules.season.current ?? "S1");
+
+  return (seasonIndex) => `${seed.prefix}${seed.firstNumber + seasonIndex}`;
+}
+
+function parseSeasonId(value) {
+  const match = String(value ?? "S1").match(/^(.*?)(\d+)$/);
+
+  if (!match) {
+    return { prefix: "S", firstNumber: 1 };
+  }
+
+  return {
+    prefix: match[1],
+    firstNumber: Number(match[2])
+  };
+}
+
+function getFallbackSeasonId(games, rules) {
+  return createSeasonIdFormatter(games, rules)(0);
+}
+
+function isGameValidForSeasonCount(game, rules) {
+  return (game.participants?.length ?? 0) >= rules.money.minimumPlayers;
+}
+
+function calculateSeasonedGameResults(rules, players, games) {
+  const playersById = new Map(players.map((player) => [player.id, player]));
+
+  return createSeasonAssignments(games, rules).map((assignment) => ({
+    ...calculateGameResult(assignment.game, playersById, rules),
+    season: assignment.season,
+    configuredSeason: assignment.game.season ?? null,
+    sourceIndex: assignment.sourceIndex,
+    seasonIndex: assignment.seasonIndex,
+    seasonGameNumber: assignment.seasonGameNumber,
+    globalValidGameNumber: assignment.globalValidGameNumber
+  }));
+}
+
 function calculateSeasonSummary(
   rules,
   players,
   games,
-  selectedSeason = rules.season.current
+  selectedSeason = null
 ) {
-  const playersById = new Map(players.map((player) => [player.id, player]));
-  const season = selectedSeason;
-  const seasonGames = games
-    .map((game, sourceIndex) => ({ game, sourceIndex }))
-    .filter(({ game }) => game.season === season)
-    .map(({ game, sourceIndex }) => ({
-      ...calculateGameResult(game, playersById, rules),
-      sourceIndex
-    }))
-    .sort(compareGamesByDateThenInputOrder);
+  const seasons = getAvailableSeasons(games, rules);
+  const currentSeason = getCurrentSeasonId(seasons, rules);
+  const season = selectedSeason ?? currentSeason;
+  const seasonGames = calculateSeasonedGameResults(rules, players, games)
+    .filter((game) => game.season === season)
+    .sort(compareGamesByInputOrder);
   const validGames = seasonGames.filter((game) => game.isValid);
   const standings = calculateStandingsForGames(players, validGames);
 
@@ -520,6 +604,7 @@ function calculateSeasonSummary(
   return {
     rules,
     season,
+    currentSeason,
     games: seasonGames,
     validGames,
     standings,
@@ -1223,7 +1308,7 @@ function renderFinanceStatements(report) {
   const previousButton = document.querySelector("#finance-previous");
   const nextButton = document.querySelector("#finance-next");
   const position = document.querySelector("#finance-position");
-  const games = [...report.games].sort(compareGamesByDateThenInputOrder);
+  const games = [...report.games].sort(compareGamesByInputOrder);
 
   if (games.length === 0) {
     container.innerHTML = '<p class="empty-state">暂无有效牌局账单。</p>';
