@@ -190,5 +190,23 @@
       { "playerId": "gou", "finalChips": -300, "rebuys": 2 ,"rebuyFine": 30},
       { "playerId": "ming", "finalChips": 1725, "rebuys": 0 }
     ]
+  },
+  {
+    "id": "game-012",
+    "season": "2026-S3",
+    "date": "2026-07-19 13:00",
+    "title": "第12局",
+    "dinnerCost": 715,
+    "buyInPerPlayer": 150,
+    "venueFee": 73,
+    "participants": [
+      { "playerId": "qiang", "finalChips": 545, "rebuys": 1,"rebuyFine": 10},
+      { "playerId": "kai", "finalChips": -550, "rebuys": 3 ,"rebuyFine": 60},
+      { "playerId": "rui", "finalChips": 1200, "rebuys": 0},
+      { "playerId": "anafkh", "finalChips": -100, "rebuys": 1, "rebuyFine": 10 },
+      { "playerId": "raiden", "finalChips": 800, "rebuys": 0 },
+      { "playerId": "gou", "finalChips": 500, "rebuys": 0 ,"rebuyFine": 0},
+      { "playerId": "ming", "finalChips": -800, "rebuys": 0 }
+    ]
   }
 ]
