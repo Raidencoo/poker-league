@@ -211,7 +211,7 @@
   },
   {
     "id": "game-013",
-    "season": "2026-S3",
+    "season": "2026-S4",
     "date": "2026-07-26 13:00",
     "title": "第13局",
     "dinnerCost": 0,
@@ -225,7 +225,24 @@
       { "playerId": "raiden", "finalChips": -700, "rebuys": 1,"rebuyFine": 10 },
       { "playerId": "peng", "finalChips": 800, "rebuys": 0,"rebuyFine": 0 },
       { "playerId": "yang", "finalChips": -2200, "rebuys": 3 ,"rebuyFine": 60},
-      { "playerId": "ming", "finalChips": -1280, "rebuys": 2 }
+      { "playerId": "ming", "finalChips": -1280, "rebuys": 2,"rebuyFine": 30 }
+    ]
+  },
+  {
+    "id": "game-014",
+    "season": "2026-S4",
+    "date": "2026-08-01 13:00",
+    "title": "第14局",
+    "dinnerCost": 387.5,
+    "buyInPerPlayer": 150,
+    "venueFee": 68,
+    "participants": [
+      { "playerId": "qiang", "finalChips": 2520, "rebuys": 0},
+      { "playerId": "kai", "finalChips": 200, "rebuys": 2 ,"rebuyFine": 30},
+      { "playerId": "rui", "finalChips": -2800, "rebuys": 4,"rebuyFine": 30},
+      { "playerId": "anafkh", "finalChips": -50, "rebuys": 0, "rebuyFine": 0 },
+      { "playerId": "raiden", "finalChips": 1000, "rebuys": 2,"rebuyFine": 30 },
+      { "playerId": "ming", "finalChips": -1280, "rebuys": 3, "rebuyFine": 30}
     ]
   }
 ]
